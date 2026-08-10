@@ -14,18 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 /**
- * version defination for the plugin
+ * Capability definitions.
  *
- * @package    auth_moowoodle
- * @author     DualCube <admin@dualcube.com>
- * @copyright  2023 DualCube Team(https://dualcube.com)
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package     auth_moowoodle
+ * @author      DualCube <admin@dualcube.com>
+ * @copyright   DualCube (https://dualcube.com)
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026081100;
-$plugin->requires = 2025041400;
-$plugin->component = 'auth_moowoodle';
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.0.2 (Build: 2026081100)';
+$capabilities = [
+    'auth/moowoodle:syncusers' => [
+        'riskbitmask' => RISK_PERSONAL,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [],
+        'clonepermissionsfrom' => 'moodle/site:config',
+    ],
+];

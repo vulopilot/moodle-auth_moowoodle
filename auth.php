@@ -50,10 +50,18 @@ class auth_plugin_moowoodle extends auth_plugin_base {
      */
     public function user_login($username, $password = null) {
         global $CFG, $DB;
-        if ($DB->get_record('user', ['username' => $username, 'mnethostid' => $CFG->mnet_localhost_id])) {
-            return true;
+
+        if (empty($password)) {
+            return false;
         }
-        return false;
+
+        $user = $DB->get_record('user', ['username' => $username, 'mnethostid' => $CFG->mnet_localhost_id]);
+
+        if (empty($user) || !empty($user->suspended)) {
+            return false;
+        }
+
+        return validate_internal_user_password($user, $password);
     }
 
     /**

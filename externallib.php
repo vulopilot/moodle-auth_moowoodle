@@ -55,20 +55,40 @@ class auth_moowoodle_external extends \external_api {
      */
     public static function auth_moowoodle_get_users($endid, $limit, $roles) {
         global $DB;
+
         if (is_numeric($limit) && is_numeric($endid)) {
+
             $limit = (int) $limit + 1;
+
+            // Sanitize role IDs and prepare SQL placeholders.
+            $roleids = explode(',', $roles);
+            $roleids = array_map('intval', $roleids);
+
+            list($rolesql, $roleparams) = $DB->get_in_or_equal(
+                $roleids,
+                SQL_PARAMS_NAMED,
+                'roleid'
+            );
+
             $sql = "SELECT u.id, u.email, u.username, u.password, u.firstname, u.lastname
-                      FROM {user} u
-                      JOIN {role_assignments} ra ON u.id = ra.userid
-                     WHERE u.id > :endid AND u.deleted = 0 AND ra.roleid IN ( " . $roles . " )
-                  ORDER BY u.id ASC";
-            $param = [
-                'endid' => (int) $endid,
-            ];
-            if ( $limit <= 0 ) {
+                    FROM {user} u
+                    JOIN {role_assignments} ra ON u.id = ra.userid
+                    WHERE u.id > :endid
+                    AND u.deleted = 0
+                    AND ra.roleid $rolesql
+                ORDER BY u.id ASC";
+
+            $param = array_merge(
+                [
+                    'endid' => (int) $endid,
+                ],
+                $roleparams
+            );
+
+            if ($limit <= 0) {
                 $response = [
                     'status' => 'success',
-                    'data' => json_encode( $DB->get_records_sql( $sql, $param ) ),
+                    'data' => json_encode($DB->get_records_sql($sql, $param)),
                 ];
             } else {
                 $response = [
@@ -82,6 +102,7 @@ class auth_moowoodle_external extends \external_api {
                 'data' => json_encode('Bad Request'),
             ];
         }
+
         return ($response);
     }
     /**
@@ -118,31 +139,63 @@ class auth_moowoodle_external extends \external_api {
      */
     public static function auth_moowoodle_user_sync( $userdata, $setting ) {
         global $DB, $CFG;
+
+        // Validate input parameters.
+        $params = self::validate_parameters(
+            self::auth_moowoodle_user_sync_parameters(),
+            [
+                'userdata' => $userdata,
+                'setting'  => $setting,
+            ]
+        );
+
+        $userdata = $params['userdata'];
+        $setting  = $params['setting'];
+
+        // Validate context.
+        $context = \context_system::instance();
+        self::validate_context( $context );
+
+        // Require capability.
+        require_capability( 'auth/moowoodle:syncusers', $context );
+
+        // Decode JSON.
         $wpuserdata   = json_decode( $userdata, true );
         $syncsettings = json_decode( $setting, true );
+
+        if ( json_last_error() !== JSON_ERROR_NONE ) {
+            throw new invalid_parameter_exception( 'Invalid JSON payload.' );
+        }
+
         if ( is_array( $wpuserdata ) && is_array( $syncsettings ) ) {
-            require_once($CFG->dirroot . '/user/lib.php');
-            $moodleuserdata = $DB->get_record( 'user', [ 'email' => $wpuserdata[ 'email' ] ] );
-            $response[ 'created' ] = false;
+            require_once( $CFG->dirroot . '/user/lib.php' );
+
+            $moodleuserdata = $DB->get_record( 'user', [ 'email' => $wpuserdata['email'], 'deleted' => 0 ] );
+            $response['created'] = false;
+
             if ( ! $moodleuserdata->id ) {
                 $moodleuserdata = new stdClass();
             }
-            $moodleuserdata->email = $wpuserdata[ 'email' ];
+
+            $moodleuserdata->email = clean_param($wpuserdata['email'], PARAM_EMAIL);
+
             if ( in_array( 'username', $syncsettings ) || ! $moodleuserdata->id ) {
-                $moodleuserdata->username = $wpuserdata[ 'username' ];
+                $moodleuserdata->username = clean_param($wpuserdata['username'], PARAM_USERNAME);
             }
-            $updatepassword = false;
-            if ( in_array( 'password', $syncsettings ) && $wpuserdata[ 'password' ] != null || ! $moodleuserdata->id ) {
-                
-                if ( strpos( $wpuserdata[ 'password' ], '$6$rounds=' ) === 0 ) {
-                    $moodleuserdata->password = $wpuserdata[ 'password' ];
+
+            if ( ( in_array( 'password', $syncsettings ) && $wpuserdata['password'] != null ) || ! $moodleuserdata->id ) {
+
+                if ( strpos( $wpuserdata['password'], '$6$rounds=' ) === 0 ) {
+                    $moodleuserdata->password = $wpuserdata['password'];
                 }
             }
-            if ( in_array( 'firstname', $syncsettings ) && $wpuserdata[ 'firstname' ] != null || ! $moodleuserdata->id ) {
-                $moodleuserdata->firstname = $wpuserdata[ 'firstname' ];
+
+            if ( ( in_array( 'firstname', $syncsettings ) && $wpuserdata['firstname'] != null ) || ! $moodleuserdata->id ) {
+                $moodleuserdata->firstname = clean_param($wpuserdata['firstname'] ?? '', PARAM_NOTAGS);
             }
-            if ( in_array( 'lastname', $syncsettings ) && $wpuserdata[ 'lastname' ] != null || ! $moodleuserdata->id ) {
-                $moodleuserdata->lastname = $wpuserdata[ 'lastname' ];
+
+            if ( ( in_array( 'lastname', $syncsettings ) && $wpuserdata['lastname'] != null ) || ! $moodleuserdata->id ) {
+                $moodleuserdata->lastname = clean_param($wpuserdata['lastname'] ?? '', PARAM_NOTAGS);
             }
 
             $moodleuserdata->confirmed  = true;
@@ -153,10 +206,11 @@ class auth_moowoodle_external extends \external_api {
                 $userid = $moodleuserdata->id;
             } else {
                 $userid = user_create_user( $moodleuserdata, false, false );
-                $response[ 'created' ] = true;
+                $response['created'] = true;
             }
 
-            $response[ 'id' ] = $userid;
+            $response['id'] = $userid;
+
             $response = [
                 'status' => 'success',
                 'data'   => json_encode( $response ),
@@ -167,8 +221,10 @@ class auth_moowoodle_external extends \external_api {
                 'data'   => json_encode( 'Bad Request' ),
             ];
         }
-        return ( $response );
+
+        return $response;
     }
+
     /**
      * Returns description of method result value
      * @return external_description
