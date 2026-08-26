@@ -43,16 +43,27 @@ $string['managetokens'] = 'Manage web service tokens';
 
 // Setup wizard: general.
 $string['setupwizard'] = 'Setup wizard';
-$string['step_requirements'] = 'Requirements';
-$string['step_connection'] = 'Connection';
-$string['step_webservice'] = 'Web service';
-$string['step_finish'] = 'Finish';
+$string['step_requirements'] = 'General';
+$string['step_connection'] = 'Wordpress Site';
+$string['step_webservice'] = 'Web Service';
+$string['step_synchronization'] = 'Synchronization';
+$string['step_summary'] = 'Summary';
+$string['save'] = 'Save';
+$string['settingssaved'] = 'Settings saved.';
+$string['recommendedyes'] = 'Recommended: yes';
+$string['recommendedno'] = 'Recommended: no';
+$string['copy'] = 'Copy';
 
-// Setup wizard: requirements step.
+// Setup wizard: General step.
 $string['requirements_intro'] = 'Before connecting to WordPress, make sure your Moodle site meets the following requirements.';
-$string['req_webservices'] = 'Web services are enabled';
-$string['req_restprotocol'] = 'The REST protocol is enabled';
-$string['req_extendedchars'] = 'Extended characters are allowed in usernames (recommended)';
+$string['req_webservices'] = 'Enable web services';
+$string['req_webservices_desc'] = 'Web services must be enabled so the MooWoodle WordPress plugin can call this site over the API.';
+$string['req_restprotocol'] = 'Enable REST protocol';
+$string['req_restprotocol_desc'] = 'The MooWoodle WordPress plugin communicates using the REST web service protocol.';
+$string['req_passwordpolicy'] = 'Password policy';
+$string['req_passwordpolicy_desc'] = 'If enabled, user passwords will be checked against the password policy configured under Site administration > Security. Leaving this off avoids conflicts when WordPress supplies its own passwords.';
+$string['req_extendedchars'] = 'Allow extended characters in usernames';
+$string['req_extendedchars_desc'] = 'Allows usernames created from WordPress to include characters beyond the Moodle default (alphanumeric, underscore, hyphen, period, at symbol).';
 $string['requirement_ok'] = 'Requirement met';
 $string['requirement_missing'] = 'Requirement not met';
 $string['fixthis'] = 'Fix this';
@@ -65,20 +76,41 @@ $string['testconnection_invalidurl'] = 'Please enter a valid WordPress site URL 
 $string['testconnection_unreachable'] = 'Could not reach {$a}. Check the URL and make sure the WordPress site is online.';
 $string['testconnection_reachable'] = '{$a} is reachable. Full verification of the MooWoodle WordPress plugin still requires completing the setup on the WordPress side.';
 
-// Setup wizard: web service step.
-$string['webservice_intro'] = 'Create the Moodle web service and access token the MooWoodle WordPress plugin uses to sync users. The token is issued to your own admin account, so it must keep the required capabilities.';
+// Setup wizard: Web Service step.
+$string['webservice_intro'] = 'Choose which web service and user the MooWoodle WordPress plugin should authenticate as, then copy the site URL and token into the WordPress plugin settings.';
 $string['webservice_create'] = 'Create web service and token';
 $string['webservice_recreate'] = 'Regenerate token';
 $string['webservice_created_success'] = 'The web service and access token are ready.';
 $string['webservice_created_fail'] = 'Could not create the web service: {$a}';
-$string['webservice_token_label'] = 'Access token';
+$string['webservice_token_label'] = 'Token';
 $string['webservice_heading'] = 'Web service';
 $string['webservice_status_none'] = 'No web service has been created yet. Run the setup wizard to create one.';
 $string['webservice_status_exists'] = 'Web service "{$a}" is set up.';
+$string['webservice_selectservice'] = 'Select web service';
+$string['webservice_createnew'] = 'Create new: MooWoodle Connect';
+$string['webservice_selectuser'] = 'Select user';
+$string['webservice_langcode'] = 'Language code';
+$string['webservice_siteurl'] = 'Site URL';
+$string['webservice_update'] = 'Update web service';
+$string['webservice_nouser'] = 'No eligible user found. The selected user needs the "moodle/webservice:createtoken" capability.';
 
-// Setup wizard: finish step.
-$string['finish_intro'] = 'Setup complete. Copy the details below into the MooWoodle WordPress plugin settings.';
-$string['finish_wpurl'] = 'WordPress site URL';
-$string['finish_mdlurl'] = 'Moodle site URL';
-$string['finish_token'] = 'Access token';
-$string['finish_copy_note'] = 'Keep the secret key and access token private — anyone with them can sync user data between the two sites.';
+// Setup wizard: Synchronization step.
+$string['synchronization_intro'] = 'Choose which additional web service functions the MooWoodle WordPress plugin is allowed to call. The functions required by this plugin are always enabled. Only enable functions the WordPress site actually needs — each one grants real access to Moodle data. Checking a box grants that function immediately; unchecking it here does not revoke access already granted — remove a function from Site administration > Server > Web services > External services if needed.';
+
+// Setup wizard: Summary step.
+$string['summary_intro'] = 'Review the configuration below, then copy the connection details into the MooWoodle WordPress plugin settings.';
+$string['summary_general_heading'] = 'General settings summary';
+$string['summary_connection_heading'] = 'Connection settings summary';
+$string['summary_webservicefunctions'] = 'Web service function';
+$string['summary_capability'] = 'Capability';
+$string['summary_moodleurl'] = 'Moodle URL';
+$string['summary_webservicename'] = 'Web service name';
+$string['summary_wordpressurl'] = 'Wordpress URL';
+$string['summary_connectionstatus'] = 'Connection status';
+$string['summary_langcode'] = 'Language code';
+$string['summary_notset'] = 'Not set up yet';
+$string['summary_copy_note'] = 'Keep the secret key and access token private — anyone with them can sync user data between the two sites.';
+$string['enabled'] = 'Enabled';
+$string['disabled'] = 'Disabled';
+$string['connectionok'] = 'Reachable';
+$string['checkmoredetails'] = 'Check the Wordpress Site step for details.';

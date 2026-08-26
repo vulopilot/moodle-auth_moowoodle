@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Web service / token creation form, used by the setup wizard and settings page.
+ * Web service / token form, used by the setup wizard.
  *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
@@ -25,6 +25,7 @@
 
 namespace auth_moowoodle\settings;
 
+use html_writer;
 use moodleform;
 
 defined('MOODLE_INTERNAL') || die();
@@ -32,7 +33,7 @@ global $CFG;
 require_once($CFG->libdir . '/formslib.php');
 
 /**
- * Web service / token creation form, used by the setup wizard and settings page.
+ * Web service / token form, used by the setup wizard.
  */
 class webservice_form extends moodleform {
 
@@ -41,12 +42,71 @@ class webservice_form extends moodleform {
      */
     public function definition() {
         $mform = $this->_form;
-        $existing = !empty($this->_customdata['existingservice']);
 
-        $label = $existing
-            ? get_string('webservice_recreate', 'auth_moowoodle')
-            : get_string('webservice_create', 'auth_moowoodle');
+        $services = $this->_customdata['services'] ?? [];
+        $users = $this->_customdata['users'] ?? [];
 
-        $mform->addElement('submit', 'createservice', $label);
+        $serviceoptions = [0 => get_string('webservice_createnew', 'auth_moowoodle')] + $services;
+        $mform->addElement('select', 'serviceid', get_string('webservice_selectservice', 'auth_moowoodle'), $serviceoptions);
+        $mform->setType('serviceid', PARAM_INT);
+
+        $mform->addElement('select', 'userid', get_string('webservice_selectuser', 'auth_moowoodle'), $users);
+        $mform->setType('userid', PARAM_INT);
+
+        $mform->addGroup(
+            [
+                $mform->createElement('text', 'langcode', '', ['size' => 20, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_langcode']),
+                $mform->createElement('html', $this->copy_button('auth_moowoodle_langcode')),
+            ],
+            'langcodegroup',
+            get_string('webservice_langcode', 'auth_moowoodle'),
+            ' ',
+            false
+        );
+        $mform->setType('langcode', PARAM_TEXT);
+
+        $mform->addGroup(
+            [
+                $mform->createElement('text', 'siteurl', '', ['size' => 40, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_siteurl']),
+                $mform->createElement('html', $this->copy_button('auth_moowoodle_siteurl')),
+            ],
+            'siteurlgroup',
+            get_string('webservice_siteurl', 'auth_moowoodle'),
+            ' ',
+            false
+        );
+        $mform->setType('siteurl', PARAM_URL);
+
+        $mform->addGroup(
+            [
+                $mform->createElement('text', 'token', '', ['size' => 40, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_token']),
+                $mform->createElement('html', $this->copy_button('auth_moowoodle_token')),
+            ],
+            'tokengroup',
+            get_string('webservice_token_label', 'auth_moowoodle'),
+            ' ',
+            false
+        );
+        $mform->setType('token', PARAM_RAW);
+
+        $mform->addElement('submit', 'updateservice', get_string('webservice_update', 'auth_moowoodle'));
+    }
+
+    /**
+     * A small "Copy" button that copies the value of the given field to the clipboard.
+     *
+     * @param string $targetid
+     * @return string
+     */
+    protected function copy_button(string $targetid): string {
+        return html_writer::tag(
+            'button',
+            get_string('copy', 'auth_moowoodle'),
+            [
+                'type' => 'button',
+                'class' => 'btn btn-secondary btn-sm auth-moowoodle-copy ml-2',
+                'data-copy-target' => $targetid,
+            ]
+        );
     }
 }

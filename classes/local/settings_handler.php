@@ -36,10 +36,33 @@ class settings_handler {
     /** @var string Name given to the web service created for the WordPress connection. */
     const SERVICE_NAME = 'MooWoodle Connect';
 
-    /** @var string[] External functions the WordPress plugin needs to be able to call. */
+    /** @var string[] External functions the WordPress plugin needs to be able to call. Always granted. */
     const SERVICE_FUNCTIONS = [
         'auth_moowoodle_get_users',
         'auth_moowoodle_user_sync',
+    ];
+
+    /** @var string[] Additional functions the admin can optionally grant to the web service. */
+    const SYNC_FUNCTIONS = [
+        'core_webservice_get_site_info',
+        'core_course_get_categories',
+        'core_course_get_courses',
+        'core_course_get_courses_by_field',
+        'core_user_get_users',
+        'core_user_create_users',
+        'core_user_update_users',
+        'core_user_delete_users',
+        'enrol_manual_enrol_users',
+        'enrol_manual_unenrol_users',
+        'auth_moowoodle_get_users',
+        'auth_moowoodle_user_sync',
+        'core_cohort_get_cohorts',
+        'core_cohort_add_cohort_members',
+        'core_cohort_delete_cohort_members',
+        'core_group_get_course_groups',
+        'core_group_create_groups',
+        'core_group_add_group_members',
+        'core_group_delete_group_members',
     ];
 
     /**
@@ -118,13 +141,221 @@ class settings_handler {
     }
 
     /**
-     * Create (or reuse) the external service and a token for the given user.
+     * Find any active token issued for the given service, regardless of user.
      *
+     * @param int $serviceid
+     * @return \stdClass|false
+     */
+    public static function get_any_token_for_service(int $serviceid) {
+        global $CFG, $DB;
+
+        require_once($CFG->libdir . '/externallib.php');
+
+        return $DB->get_record(
+            'external_tokens',
+            ['externalserviceid' => $serviceid, 'tokentype' => EXTERNAL_TOKEN_PERMANENT],
+            '*',
+            IGNORE_MULTIPLE
+        );
+    }
+
+    /**
+     * A snapshot of everything the Summary step needs to display.
+     *
+     * @return array
+     */
+    public static function get_summary(): array {
+        global $CFG, $DB;
+
+        $protocols = !empty($CFG->webserviceprotocols) ? explode(',', $CFG->webserviceprotocols) : [];
+
+        $service = self::get_existing_service();
+        $token = $service ? self::get_any_token_for_service((int) $service->id) : false;
+
+        $functionsgranted = false;
+
+        if ($service) {
+            $granted = $DB->get_records_menu(
+                'external_services_functions',
+                ['externalserviceid' => $service->id],
+                '',
+                'id,functionname'
+            );
+            $functionsgranted = empty(array_diff(self::SERVICE_FUNCTIONS, $granted));
+        }
+
+        $capabilityok = false;
+
+        if ($token) {
+            $capabilityok = has_capability(
+                'auth/moowoodle:syncusers',
+                context_system::instance(),
+                (int) $token->userid
+            );
+        }
+
+        return [
+            'restprotocol' => in_array('rest', $protocols, true),
+            'webservices' => (bool) $CFG->enablewebservices,
+            'passwordpolicy' => (bool) $CFG->passwordpolicy,
+            'extendedusernamechars' => (bool) $CFG->extendedusernamechars,
+            'webservicefunctions' => $functionsgranted,
+            'capability' => $capabilityok,
+            'moodleurl' => $CFG->wwwroot,
+            'webservicename' => $service->name ?? '',
+            'token' => $token->token ?? '',
+            'wordpressurl' => (string) get_config('auth_moowoodle', 'wpsiteurl'),
+            'langcode' => $CFG->lang,
+        ];
+    }
+
+    /**
+     * List of custom (non built-in) external services, keyed by id.
+     *
+     * @return string[]
+     */
+    public static function get_existing_services(): array {
+        global $DB;
+
+        $records = $DB->get_records_select(
+            'external_services',
+            'component IS NULL',
+            null,
+            'name ASC',
+            'id,name'
+        );
+
+        $options = [];
+        foreach ($records as $record) {
+            $options[$record->id] = $record->name;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Users allowed to hold a token, keyed by id.
+     *
+     * @return string[]
+     */
+    public static function get_selectable_users(): array {
+        $users = get_users_by_capability(
+            context_system::instance(),
+            'moodle/webservice:createtoken',
+            'u.id,u.firstname,u.lastname,u.email',
+            'u.lastname ASC, u.firstname ASC'
+        );
+
+        $options = [];
+        foreach ($users as $user) {
+            $options[$user->id] = fullname($user) . ' (' . $user->email . ')';
+        }
+
+        return $options;
+    }
+
+    /**
+     * Functions the admin can optionally grant to the web service.
+     *
+     * @return string[]
+     */
+    public static function get_selectable_sync_functions(): array {
+        return self::SYNC_FUNCTIONS;
+    }
+
+    /**
+     * Functions currently granted to the web service (mandatory ones are always included).
+     *
+     * @return string[]
+     */
+    public static function get_enabled_sync_functions(): array {
+        $stored = get_config('auth_moowoodle', 'syncfunctions');
+
+        if ($stored === false || $stored === '') {
+            return self::SERVICE_FUNCTIONS;
+        }
+
+        $selected = array_filter(explode(',', $stored));
+
+        return array_values(array_unique(array_merge(self::SERVICE_FUNCTIONS, $selected)));
+    }
+
+    /**
+     * Store which optional functions are granted, and apply the change to an existing service.
+     *
+     * @param string[] $functions Functions selected by the admin, from SYNC_FUNCTIONS.
+     */
+    public static function save_sync_functions(array $functions): void {
+        $functions = array_values(array_intersect(self::SYNC_FUNCTIONS, $functions));
+        $functions = array_unique(array_merge(self::SERVICE_FUNCTIONS, $functions));
+
+        set_config('syncfunctions', implode(',', $functions), 'auth_moowoodle');
+
+        $service = self::get_existing_service();
+
+        if ($service) {
+            self::sync_service_functions((int) $service->id, $functions);
+        }
+    }
+
+    /**
+     * Grant the given functions to the service.
+     *
+     * Only adds functions; never removes any. The selected service may be one the
+     * admin picked from existing services rather than one this plugin created, so
+     * unchecking a function here does not strip anything it might already be using
+     * for another purpose. Functions can be removed from a service, if needed, from
+     * Moodle's own External services screen.
+     *
+     * @param int $serviceid
+     * @param string[] $functions Functions that should be granted.
+     */
+    protected static function sync_service_functions(int $serviceid, array $functions): void {
+        global $CFG;
+
+        require_once($CFG->dirroot . '/webservice/lib.php');
+        $webservicemanager = new \webservice();
+
+        foreach ($functions as $functionname) {
+            if (!$webservicemanager->service_function_exists($functionname, $serviceid)) {
+                $webservicemanager->add_external_function_to_service($functionname, $serviceid);
+            }
+        }
+    }
+
+    /**
+     * Save the general server requirement toggles onto core config.
+     *
+     * @param \stdClass $data
+     */
+    public static function save_general_settings(\stdClass $data): void {
+        global $CFG;
+
+        set_config('enablewebservices', !empty($data->enablewebservices) ? 1 : 0);
+
+        $protocols = !empty($CFG->webserviceprotocols) ? explode(',', $CFG->webserviceprotocols) : [];
+        $protocols = array_filter($protocols, static function ($protocol) {
+            return $protocol !== '' && $protocol !== 'rest';
+        });
+
+        if (!empty($data->restprotocol)) {
+            $protocols[] = 'rest';
+        }
+
+        set_config('webserviceprotocols', implode(',', array_unique($protocols)));
+        set_config('passwordpolicy', !empty($data->passwordpolicy) ? 1 : 0);
+        set_config('extendedusernamechars', !empty($data->extendedusernamechars) ? 1 : 0);
+    }
+
+    /**
+     * Create a new external service, or reuse an existing one, and issue a token for the given user.
+     *
+     * @param int $serviceid Existing external_services.id to reuse, or 0 to create a new service.
      * @param int $userid User the token will be issued for. Needs the capabilities
      *                     required by auth_moowoodle_get_users / auth_moowoodle_user_sync.
-     * @return array [success => bool, message => string, token => string|null]
+     * @return array [success => bool, message => string, token => string|null, serviceid => int|null]
      */
-    public static function create_external_service(int $userid): array {
+    public static function create_or_update_service(int $serviceid, int $userid): array {
         global $CFG, $DB;
 
         require_once($CFG->dirroot . '/webservice/lib.php');
@@ -133,9 +364,14 @@ class settings_handler {
         $webservicemanager = new \webservice();
 
         try {
-            $service = self::get_existing_service();
+            if ($serviceid > 0) {
+                $service = $DB->get_record('external_services', ['id' => $serviceid], '*', MUST_EXIST);
 
-            if (!$service) {
+                if (empty($service->enabled)) {
+                    $service->enabled = 1;
+                    $webservicemanager->update_external_service($service);
+                }
+            } else {
                 $shortname = self::generate_service_shortname();
 
                 $servicedata = (object) [
@@ -150,17 +386,11 @@ class settings_handler {
                 ];
 
                 $serviceid = $webservicemanager->add_external_service($servicedata);
-                set_config('webservice_id', $serviceid, 'auth_moowoodle');
-            } else {
-                $serviceid = $service->id;
-
-                if (empty($service->enabled)) {
-                    $service->enabled = 1;
-                    $webservicemanager->update_external_service($service);
-                }
             }
 
-            foreach (self::SERVICE_FUNCTIONS as $functionname) {
+            set_config('webservice_id', $serviceid, 'auth_moowoodle');
+
+            foreach (self::get_enabled_sync_functions() as $functionname) {
                 if (!$webservicemanager->service_function_exists($functionname, $serviceid)) {
                     $webservicemanager->add_external_function_to_service($functionname, $serviceid);
                 }

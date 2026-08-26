@@ -38,9 +38,10 @@ class setup_wizard {
     public static function get_steps(): array {
         return [
             'requirements' => get_string('step_requirements', 'auth_moowoodle'),
-            'connection' => get_string('step_connection', 'auth_moowoodle'),
             'webservice' => get_string('step_webservice', 'auth_moowoodle'),
-            'finish' => get_string('step_finish', 'auth_moowoodle'),
+            'connection' => get_string('step_connection', 'auth_moowoodle'),
+            'synchronization' => get_string('step_synchronization', 'auth_moowoodle'),
+            'summary' => get_string('step_summary', 'auth_moowoodle'),
         ];
     }
 
@@ -99,34 +100,34 @@ class setup_wizard {
     }
 
     /**
-     * Render the step progress indicator.
+     * Render the step progress indicator using Moodle's standard tab UI.
      *
      * @param string $currentstep
      * @return string
      */
     public static function render_progress(string $currentstep): string {
-        global $PAGE;
+        global $OUTPUT;
 
         $steps = self::get_steps();
+        $stepkeys = array_keys($steps);
+
         $furthest = get_config('auth_moowoodle', 'setup_progress');
-        $furthestindex = $furthest ? array_search($furthest, array_keys($steps), true) : -1;
-        $currentindex = array_search($currentstep, array_keys($steps), true);
+        $furthestindex = $furthest ? array_search($furthest, $stepkeys, true) : -1;
 
-        $templatecontext = ['steps' => []];
-        $number = 0;
+        $tabs = [];
+        $inactive = [];
 
-        foreach ($steps as $key => $title) {
-            $number++;
-            $templatecontext['steps'][] = [
-                'number' => $number,
-                'title' => $title,
-                'active' => $key === $currentstep,
-                'completed' => $furthestindex !== false && array_search($key, array_keys($steps), true) < $furthestindex,
-            ];
+        foreach ($stepkeys as $index => $key) {
+            $url = new \moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => $key]);
+            $tabs[] = new \tabobject($key, $url, $steps[$key]);
+
+            // A step can only be jumped to once the wizard has reached it at least once.
+            if ($index > $furthestindex + 1) {
+                $inactive[] = $key;
+            }
         }
 
-        $renderer = $PAGE->get_renderer('core');
-        return $renderer->render_from_template('auth_moowoodle/setup_steps', $templatecontext);
+        return $OUTPUT->tabtree($tabs, $currentstep, $inactive);
     }
 
     /**

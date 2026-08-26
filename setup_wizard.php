@@ -30,6 +30,8 @@ require_once(__DIR__ . '/lib.php');
 use auth_moowoodle\local\setup_wizard;
 use auth_moowoodle\local\settings_handler;
 use auth_moowoodle\settings\connection_form;
+use auth_moowoodle\settings\general_form;
+use auth_moowoodle\settings\synchronization_form;
 use auth_moowoodle\settings\webservice_form;
 use core\context\system as context_system;
 
@@ -53,6 +55,26 @@ $PAGE->set_url($pageurl);
 $PAGE->set_title(get_string('setupwizard', 'auth_moowoodle'));
 $PAGE->set_heading(get_string('setupwizard', 'auth_moowoodle'));
 
+// Small "Copy" button behaviour for the read-only site URL / token fields.
+$copyjs = "document.addEventListener('click', function(event) {\n" .
+    "    var button = event.target.closest('.auth-moowoodle-copy');\n" .
+    "    if (!button) {\n" .
+    "        return;\n" .
+    "    }\n" .
+    "    var target = document.getElementById(button.getAttribute('data-copy-target'));\n" .
+    "    if (!target) {\n" .
+    "        return;\n" .
+    "    }\n" .
+    "    var text = 'value' in target ? target.value : target.textContent;\n" .
+    "    if (navigator.clipboard && navigator.clipboard.writeText) {\n" .
+    "        navigator.clipboard.writeText(text);\n" .
+    "    } else {\n" .
+    "        target.select();\n" .
+    "        document.execCommand('copy');\n" .
+    "    }\n" .
+    "});";
+$PAGE->requires->js_init_code($copyjs, true);
+
 // Simple GET+sesskey "continue" actions (steps with nothing to submit).
 if (data_submitted() && optional_param('continuestep', 0, PARAM_BOOL)) {
     require_sesskey();
@@ -72,31 +94,30 @@ $content = '';
 switch ($step) {
 
     case 'requirements':
-        $checks = settings_handler::get_requirement_checks();
+        $form = new general_form($pageurl);
+
+        if ($data = $form->get_data()) {
+            settings_handler::save_general_settings($data);
+            $content .= $OUTPUT->notification(get_string('settingssaved', 'auth_moowoodle'), 'success');
+
+            if (!empty($data->saveandcontinue)) {
+                setup_wizard::mark_step_complete($step);
+                redirect(new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => setup_wizard::get_next_step($step)]));
+            }
+        } else {
+            $protocols = !empty($CFG->webserviceprotocols) ? explode(',', $CFG->webserviceprotocols) : [];
+
+            $form->set_data((object) [
+                'enablewebservices' => (bool) $CFG->enablewebservices,
+                'restprotocol' => in_array('rest', $protocols, true),
+                'passwordpolicy' => (bool) $CFG->passwordpolicy,
+                'extendedusernamechars' => (bool) $CFG->extendedusernamechars,
+            ]);
+        }
 
         $content .= $OUTPUT->heading(get_string('step_requirements', 'auth_moowoodle'), 3);
         $content .= html_writer::tag('p', get_string('requirements_intro', 'auth_moowoodle'));
-
-        $rows = '';
-        foreach ($checks as $check) {
-            $icon = $check['met']
-                ? $OUTPUT->pix_icon('i/valid', get_string('requirement_ok', 'auth_moowoodle'))
-                : $OUTPUT->pix_icon('i/invalid', get_string('requirement_missing', 'auth_moowoodle'));
-
-            $fixlink = !$check['met']
-                ? html_writer::link($check['settingsurl'], get_string('fixthis', 'auth_moowoodle'), ['class' => 'ml-2'])
-                : '';
-
-            $rows .= html_writer::tag(
-                'li',
-                $icon . ' ' . s($check['name']) . $fixlink,
-                ['class' => 'mb-2']
-            );
-        }
-        $content .= html_writer::tag('ul', $rows, ['class' => 'list-unstyled']);
-
-        $continueurl = new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => $step, 'continuestep' => 1]);
-        $content .= $OUTPUT->single_button($continueurl, get_string('continue'), 'post');
+        $content .= $form->render();
         break;
 
     case 'connection':
@@ -132,58 +153,148 @@ switch ($step) {
     case 'webservice':
         require_capability('moodle/webservice:createtoken', $context);
 
-        $existingservice = settings_handler::get_existing_service();
-        $form = new webservice_form($pageurl, ['existingservice' => (bool) $existingservice]);
+        $services = settings_handler::get_existing_services();
+        $users = settings_handler::get_selectable_users();
+
+        if (empty($users)) {
+            $users = [$USER->id => fullname($USER)];
+        }
+
+        $form = new webservice_form($pageurl, ['services' => $services, 'users' => $users]);
+
+        if ($data = $form->get_data()) {
+            $result = settings_handler::create_or_update_service((int) $data->serviceid, (int) $data->userid);
+
+            if ($result['success']) {
+                setup_wizard::mark_step_complete($step);
+                redirect(
+                    $pageurl,
+                    get_string('webservice_created_success', 'auth_moowoodle'),
+                    null,
+                    \core\output\notification::NOTIFY_SUCCESS
+                );
+            }
+
+            $content .= $OUTPUT->notification($result['message'], 'error');
+        }
+
+        $currentserviceid = (int) get_config('auth_moowoodle', 'webservice_id');
+        $selecteduserid = array_key_exists((int) $USER->id, $users) ? (int) $USER->id : (int) array_key_first($users);
+        $token = '';
+
+        if ($currentserviceid && array_key_exists($currentserviceid, $services)) {
+            $existingtoken = settings_handler::get_existing_token($currentserviceid, $selecteduserid);
+            $token = $existingtoken ? $existingtoken->token : '';
+        }
+
+        $form->set_data((object) [
+            'serviceid' => $currentserviceid,
+            'userid' => $selecteduserid,
+            'langcode' => $CFG->lang,
+            'siteurl' => $CFG->wwwroot,
+            'token' => $token,
+        ]);
 
         $content .= $OUTPUT->heading(get_string('step_webservice', 'auth_moowoodle'), 3);
         $content .= html_writer::tag('p', get_string('webservice_intro', 'auth_moowoodle'));
+        $content .= $form->render();
 
-        $token = null;
+        $nexturl = new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => setup_wizard::get_next_step($step)]);
+        $content .= $OUTPUT->single_button($nexturl, get_string('next'), 'get');
+        break;
 
-        if ($existingservice) {
-            $existingtoken = settings_handler::get_existing_token($existingservice->id, $USER->id);
-            $token = $existingtoken ? $existingtoken->token : null;
-        }
+    case 'synchronization':
+        $availablefunctions = settings_handler::get_selectable_sync_functions();
+        $form = new synchronization_form($pageurl, [
+            'functions' => $availablefunctions,
+            'mandatory' => settings_handler::SERVICE_FUNCTIONS,
+        ]);
 
         if ($data = $form->get_data()) {
-            $result = settings_handler::create_external_service($USER->id);
-            $content .= $OUTPUT->notification($result['message'], $result['success'] ? 'success' : 'error');
+            $selected = [];
 
-            if ($result['success']) {
-                $token = $result['token'];
-                setup_wizard::mark_step_complete($step);
+            foreach ($availablefunctions as $function) {
+                $fieldname = 'func_' . $function;
+
+                if (!empty($data->$fieldname)) {
+                    $selected[] = $function;
+                }
             }
+
+            settings_handler::save_sync_functions($selected);
+            $content .= $OUTPUT->notification(get_string('settingssaved', 'auth_moowoodle'), 'success');
+
+            if (!empty($data->saveandcontinue)) {
+                setup_wizard::mark_step_complete($step);
+                redirect(new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => setup_wizard::get_next_step($step)]));
+            }
+        } else {
+            $enabled = settings_handler::get_enabled_sync_functions();
+            $defaults = (object) [];
+
+            foreach ($availablefunctions as $function) {
+                $defaults->{'func_' . $function} = in_array($function, $enabled, true);
+            }
+
+            $form->set_data($defaults);
         }
 
-        if ($token) {
-            $content .= html_writer::tag('p', html_writer::tag('strong', get_string('webservice_token_label', 'auth_moowoodle')));
-            $content .= html_writer::tag('pre', s($token));
-            $continueurl = new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => setup_wizard::get_next_step($step)]);
-            $content .= $OUTPUT->single_button($continueurl, get_string('continue'), 'get');
-        }
-
+        $content .= $OUTPUT->heading(get_string('step_synchronization', 'auth_moowoodle'), 3);
+        $content .= html_writer::tag('p', get_string('synchronization_intro', 'auth_moowoodle'));
         $content .= $form->render();
         break;
 
-    case 'finish':
-        $service = settings_handler::get_existing_service();
-        $token = $service ? settings_handler::get_existing_token($service->id, $USER->id) : false;
+    case 'summary':
+        $summary = settings_handler::get_summary();
 
-        $content .= $OUTPUT->heading(get_string('step_finish', 'auth_moowoodle'), 3);
-        $content .= $OUTPUT->notification(get_string('finish_intro', 'auth_moowoodle'), 'success');
+        $connectiontest = !empty($summary['wordpressurl'])
+            ? settings_handler::test_connection($summary['wordpressurl'])
+            : ['success' => false, 'message' => get_string('testconnection_invalidurl', 'auth_moowoodle')];
 
-        $summary = [
-            get_string('finish_wpurl', 'auth_moowoodle') => s(get_config('auth_moowoodle', 'wpsiteurl')),
-            get_string('finish_mdlurl', 'auth_moowoodle') => s($CFG->wwwroot),
-            get_string('finish_token', 'auth_moowoodle') => $token ? s($token->token) : get_string('webservice_status_none', 'auth_moowoodle'),
+        $content .= $OUTPUT->heading(get_string('step_summary', 'auth_moowoodle'), 3);
+        $content .= html_writer::tag('p', get_string('summary_intro', 'auth_moowoodle'));
+
+        $statuscell = static function (bool $ok) use ($OUTPUT): string {
+            return $ok
+                ? $OUTPUT->pix_icon('i/valid', get_string('enabled', 'auth_moowoodle')) . ' ' . get_string('enabled', 'auth_moowoodle')
+                : $OUTPUT->pix_icon('i/invalid', get_string('disabled', 'auth_moowoodle')) . ' ' . get_string('disabled', 'auth_moowoodle');
+        };
+
+        $content .= $OUTPUT->heading(get_string('summary_general_heading', 'auth_moowoodle'), 4);
+
+        $generaltable = new html_table();
+        $generaltable->attributes['class'] = 'table table-sm auth-moowoodle-summary-table';
+        $generaltable->data = [
+            [get_string('req_restprotocol', 'auth_moowoodle'), $statuscell($summary['restprotocol'])],
+            [get_string('req_webservices', 'auth_moowoodle'), $statuscell($summary['webservices'])],
+            [get_string('req_passwordpolicy', 'auth_moowoodle'), $statuscell($summary['passwordpolicy'])],
+            [get_string('req_extendedchars', 'auth_moowoodle'), $statuscell($summary['extendedusernamechars'])],
+            [get_string('summary_webservicefunctions', 'auth_moowoodle'), $statuscell($summary['webservicefunctions'])],
+            [get_string('summary_capability', 'auth_moowoodle'), $statuscell($summary['capability'])],
         ];
+        $content .= html_writer::table($generaltable);
 
-        $rows = '';
-        foreach ($summary as $label => $value) {
-            $rows .= html_writer::tag('dt', $label) . html_writer::tag('dd', $value);
-        }
-        $content .= html_writer::tag('dl', $rows);
-        $content .= html_writer::tag('p', get_string('finish_copy_note', 'auth_moowoodle'));
+        $content .= $OUTPUT->heading(get_string('summary_connection_heading', 'auth_moowoodle'), 4);
+
+        $connectionstepurl = new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => 'connection']);
+
+        $connectionstatus = $connectiontest['success']
+            ? $OUTPUT->pix_icon('i/valid', '') . ' ' . get_string('connectionok', 'auth_moowoodle')
+            : $OUTPUT->pix_icon('i/invalid', '') . ' ' . s($connectiontest['message']) . ' '
+                . html_writer::link($connectionstepurl, get_string('checkmoredetails', 'auth_moowoodle'));
+
+        $connectiontable = new html_table();
+        $connectiontable->attributes['class'] = 'table table-sm auth-moowoodle-summary-table';
+        $connectiontable->data = [
+            [get_string('summary_moodleurl', 'auth_moowoodle'), s($summary['moodleurl'])],
+            [get_string('summary_webservicename', 'auth_moowoodle'), $summary['webservicename'] !== '' ? s($summary['webservicename']) : get_string('summary_notset', 'auth_moowoodle')],
+            [get_string('webservice_token_label', 'auth_moowoodle'), $summary['token'] !== '' ? s($summary['token']) : get_string('summary_notset', 'auth_moowoodle')],
+            [get_string('summary_wordpressurl', 'auth_moowoodle'), $summary['wordpressurl'] !== '' ? s($summary['wordpressurl']) : get_string('summary_notset', 'auth_moowoodle')],
+            [get_string('summary_connectionstatus', 'auth_moowoodle'), $connectionstatus],
+            [get_string('summary_langcode', 'auth_moowoodle'), s($summary['langcode'])],
+        ];
+        $content .= html_writer::table($connectiontable);
+        $content .= html_writer::tag('p', get_string('summary_copy_note', 'auth_moowoodle'));
 
         $settingsurl = new moodle_url('/admin/settings.php', ['section' => 'manageauths']);
         $content .= $OUTPUT->single_button($settingsurl, get_string('gotosettings', 'auth_moowoodle'), 'get');
