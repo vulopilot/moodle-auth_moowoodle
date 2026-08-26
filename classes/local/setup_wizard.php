@@ -1,0 +1,147 @@
+<?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Setup wizard step registry and progress rendering.
+ *
+ * @package    auth_moowoodle
+ * @author     DualCube <admin@dualcube.com>
+ * @copyright  2023 DualCube Team(https://dualcube.com)
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+namespace auth_moowoodle\local;
+
+/**
+ * Setup wizard step registry and progress rendering.
+ */
+class setup_wizard {
+
+    /**
+     * Ordered list of wizard steps.
+     *
+     * @return array
+     */
+    public static function get_steps(): array {
+        return [
+            'requirements' => get_string('step_requirements', 'auth_moowoodle'),
+            'connection' => get_string('step_connection', 'auth_moowoodle'),
+            'webservice' => get_string('step_webservice', 'auth_moowoodle'),
+            'finish' => get_string('step_finish', 'auth_moowoodle'),
+        ];
+    }
+
+    /**
+     * The step to show when no step is requested and no progress is stored.
+     *
+     * @return string
+     */
+    public static function get_first_step(): string {
+        $steps = array_keys(self::get_steps());
+        return reset($steps);
+    }
+
+    /**
+     * The step after the given one, or '' if it was the last step.
+     *
+     * @param string $currentstep
+     * @return string
+     */
+    public static function get_next_step(string $currentstep): string {
+        $steps = array_keys(self::get_steps());
+        $index = array_search($currentstep, $steps, true);
+
+        if ($index === false || !isset($steps[$index + 1])) {
+            return '';
+        }
+
+        return $steps[$index + 1];
+    }
+
+    /**
+     * The step before the given one, or '' if it was the first step.
+     *
+     * @param string $currentstep
+     * @return string
+     */
+    public static function get_prev_step(string $currentstep): string {
+        $steps = array_keys(self::get_steps());
+        $index = array_search($currentstep, $steps, true);
+
+        if ($index === false || $index === 0) {
+            return '';
+        }
+
+        return $steps[$index - 1];
+    }
+
+    /**
+     * Whether the given step key is a valid step.
+     *
+     * @param string $step
+     * @return bool
+     */
+    public static function is_valid_step(string $step): bool {
+        return array_key_exists($step, self::get_steps());
+    }
+
+    /**
+     * Render the step progress indicator.
+     *
+     * @param string $currentstep
+     * @return string
+     */
+    public static function render_progress(string $currentstep): string {
+        global $PAGE;
+
+        $steps = self::get_steps();
+        $furthest = get_config('auth_moowoodle', 'setup_progress');
+        $furthestindex = $furthest ? array_search($furthest, array_keys($steps), true) : -1;
+        $currentindex = array_search($currentstep, array_keys($steps), true);
+
+        $templatecontext = ['steps' => []];
+        $number = 0;
+
+        foreach ($steps as $key => $title) {
+            $number++;
+            $templatecontext['steps'][] = [
+                'number' => $number,
+                'title' => $title,
+                'active' => $key === $currentstep,
+                'completed' => $furthestindex !== false && array_search($key, array_keys($steps), true) < $furthestindex,
+            ];
+        }
+
+        $renderer = $PAGE->get_renderer('core');
+        return $renderer->render_from_template('auth_moowoodle/setup_steps', $templatecontext);
+    }
+
+    /**
+     * Record that the given step has been completed, advancing stored progress.
+     *
+     * @param string $step
+     */
+    public static function mark_step_complete(string $step): void {
+        $steps = array_keys(self::get_steps());
+        $stored = get_config('auth_moowoodle', 'setup_progress');
+        $storedindex = $stored ? array_search($stored, $steps, true) : -1;
+        $stepindex = array_search($step, $steps, true);
+
+        if ($stepindex !== false && $stepindex > $storedindex) {
+            set_config('setup_progress', $step, 'auth_moowoodle');
+        }
+    }
+}

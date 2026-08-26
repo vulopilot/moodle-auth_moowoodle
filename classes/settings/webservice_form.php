@@ -13,8 +13,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * version defination for the plugin
+ * Web service / token creation form, used by the setup wizard and settings page.
  *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
@@ -22,10 +23,30 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die();
+namespace auth_moowoodle\settings;
 
-$plugin->version = 2026082600;
-$plugin->requires = 2025041400;
-$plugin->component = 'auth_moowoodle';
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.1.0 (Build: 2026082600)';
+use moodleform;
+
+defined('MOODLE_INTERNAL') || die();
+global $CFG;
+require_once($CFG->libdir . '/formslib.php');
+
+/**
+ * Web service / token creation form, used by the setup wizard and settings page.
+ */
+class webservice_form extends moodleform {
+
+    /**
+     * Form definition.
+     */
+    public function definition() {
+        $mform = $this->_form;
+        $existing = !empty($this->_customdata['existingservice']);
+
+        $label = $existing
+            ? get_string('webservice_recreate', 'auth_moowoodle')
+            : get_string('webservice_create', 'auth_moowoodle');
+
+        $mform->addElement('submit', 'createservice', $label);
+    }
+}
