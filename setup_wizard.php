@@ -75,12 +75,13 @@ $copyjs = "document.addEventListener('click', function(event) {\n" .
 $PAGE->requires->js_init_code($copyjs, true);
 
 // Reload the Web Service step's form when the service dropdown changes, so the Token
-// list can be refreshed for whichever service is now selected.
+// list can be refreshed for whichever service is now selected. A plain form submit
+// (not a specific button click) is used; the PHP side only treats a submission as a
+// real "create/update" action when the actual submit button's value is present.
 $reloadjs = "var serviceselect = document.getElementById('auth_moowoodle_serviceid');\n" .
-    "var reloadbutton = document.getElementById('auth_moowoodle_reload');\n" .
-    "if (serviceselect && reloadbutton) {\n" .
+    "if (serviceselect && serviceselect.form) {\n" .
     "    serviceselect.addEventListener('change', function() {\n" .
-    "        reloadbutton.click();\n" .
+    "        serviceselect.form.submit();\n" .
     "    });\n" .
     "}";
 $PAGE->requires->js_init_code($reloadjs, true);
@@ -171,7 +172,7 @@ switch ($step) {
         }
 
         // The service currently selected in the dropdown (possibly not yet saved), so the
-        // Token list can be refreshed for it via the hidden reload button.
+        // Token list can be refreshed for it when the dropdown change reloads the page.
         $rawserviceid = optional_param('serviceid', '', PARAM_RAW);
         $viewserviceid = $rawserviceid !== '' ? (int) $rawserviceid : (int) get_config('auth_moowoodle', 'webservice_id');
         $tokens = settings_handler::get_tokens_for_service($viewserviceid);
@@ -183,7 +184,12 @@ switch ($step) {
             'existingservice' => (bool) $viewserviceid,
         ]);
 
-        if ($data = $form->get_data()) {
+        // Only treat this as a real create/update when the actual submit button was
+        // clicked. A plain dropdown-change reload (see the JS above) posts the form
+        // without any submit button's name/value, so it never reaches this branch.
+        $realsubmit = optional_param('updateservice', '', PARAM_RAW) !== '';
+
+        if ($realsubmit && ($data = $form->get_data())) {
             // Grant every known function automatically; the admin isn't asked to pick.
             settings_handler::save_sync_functions(settings_handler::get_selectable_sync_functions());
 

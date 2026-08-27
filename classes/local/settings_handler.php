@@ -233,9 +233,14 @@ class settings_handler {
         $options = [];
 
         foreach ($tokens as $token) {
-            $user = \core_user::get_user($token->userid);
-            $label = $user ? fullname($user) : ('#' . $token->userid);
-            $options[$token->token] = $label . ' (' . substr($token->token, 0, 8) . '…)';
+            $user = \core_user::get_user((int) $token->userid, '*', IGNORE_MISSING);
+            $name = $user ? trim(fullname($user)) : '';
+
+            if ($name === '') {
+                $name = get_string('webservice_unknownuser', 'auth_moowoodle', $token->userid);
+            }
+
+            $options[$token->token] = $name . ' (' . substr($token->token, 0, 8) . '…)';
         }
 
         return $options;

@@ -64,16 +64,6 @@ class webservice_form extends moodleform {
         $mform->setType('newservicename', PARAM_TEXT);
         $mform->hideIf('newservicename', 'serviceid', 'neq', 0);
 
-        // A hidden, no-submit button that only reloads the form so the Token list can
-        // be refreshed for whichever service is currently selected.
-        $mform->registerNoSubmitButton('reload');
-        $mform->addElement(
-            'submit',
-            'reload',
-            get_string('reload', 'auth_moowoodle'),
-            ['id' => 'auth_moowoodle_reload', 'class' => 'd-none']
-        );
-
         $mform->addElement('select', 'userid', get_string('webservice_selectuser', 'auth_moowoodle'), $users);
         $mform->setType('userid', PARAM_INT);
 

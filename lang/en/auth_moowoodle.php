@@ -95,8 +95,8 @@ $string['webservice_selecttoken'] = 'Select token';
 $string['webservice_langcode'] = 'Language code';
 $string['webservice_siteurl'] = 'Site URL';
 $string['webservice_update'] = 'Update web service';
-$string['reload'] = 'Reload';
 $string['webservice_nouser'] = 'No eligible user found. The selected user needs the "moodle/webservice:createtoken" capability.';
+$string['webservice_unknownuser'] = 'Unknown user (id {$a})';
 
 // Setup wizard: Web Service step, additional function grants.
 $string['synchronization_intro'] = 'Choose which additional web service functions the MooWoodle WordPress plugin is allowed to call. The functions required by this plugin are always enabled. Only enable functions the WordPress site actually needs — each one grants real access to Moodle data. Checking a box grants that function immediately; unchecking it here does not revoke access already granted — remove a function from Site administration > Server > Web services > External services if needed.';
