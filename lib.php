@@ -26,6 +26,47 @@
 defined('MOODLE_INTERNAL') || die;
 
 /**
+ * Right after a fresh install, send the next admin who loads a page straight to the
+ * setup wizard. This runs on every single request (it's a core bootstrap callback),
+ * so it must return immediately once the one-time flag set by db/install.php is gone.
+ */
+function auth_moowoodle_after_config(): void {
+    global $CFG, $USER;
+
+    if (empty(get_config('auth_moowoodle', 'promptsetupwizard'))) {
+        return;
+    }
+
+    if (CLI_SCRIPT || AJAX_SCRIPT || WS_SERVER || during_initial_install()
+            || (defined('PHPUNIT_TEST') && PHPUNIT_TEST)
+            || (defined('NO_MOODLE_COOKIES') && NO_MOODLE_COOKIES)) {
+        return;
+    }
+
+    // Don't jump in mid-upgrade; wait until the whole site (all plugins) is up to date.
+    if (!empty($CFG->upgraderunning) || moodle_needs_upgrading()) {
+        return;
+    }
+
+    if (empty($USER->id) || isguestuser()) {
+        return;
+    }
+
+    // Avoid redirecting away from the plugin's own pages (the wizard itself, or the
+    // token-refresh AJAX endpoint it calls).
+    if (strpos($_SERVER['SCRIPT_NAME'] ?? '', '/auth/moowoodle/') !== false) {
+        return;
+    }
+
+    if (!has_capability('moodle/site:config', \core\context\system::instance())) {
+        return;
+    }
+
+    unset_config('promptsetupwizard', 'auth_moowoodle');
+    redirect(new moodle_url('/auth/moowoodle/setup_wizard.php'));
+}
+
+/**
  * Reminder banner shown to admins on Site administration pages until the MooWoodle
  * setup wizard has been completed, so a fresh install doesn't go unnoticed.
  *

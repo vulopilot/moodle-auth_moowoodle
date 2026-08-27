@@ -13,8 +13,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * version defination for the plugin
+ * Post-install steps for auth_moowoodle.
  *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
@@ -24,8 +25,11 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026082701;
-$plugin->requires = 2025041400;
-$plugin->component = 'auth_moowoodle';
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.1.0 (Build: 2026082701)';
+/**
+ * Runs once, right after this plugin is first installed.
+ */
+function xmldb_auth_moowoodle_install() {
+    // Consumed by auth_moowoodle_after_config(), which sends the next admin who loads
+    // a page to the setup wizard, then clears this flag so it only happens once.
+    set_config('promptsetupwizard', 1, 'auth_moowoodle');
+}

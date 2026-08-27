@@ -12,4 +12,4 @@ Site administration > Plugins > Authentication > MooWoodle Connect > Setup wizar
 
 The same fields can also be edited directly from the plugin's settings page.
 
-Until the wizard is completed, a reminder linking to it appears on Site administration pages for anyone with the `moodle/site:config` capability.
+Right after this plugin is first installed, the next page an admin loads (once the whole Moodle upgrade has finished) redirects straight into the wizard. Until the wizard is completed, a reminder also appears on Site administration pages for anyone with the `moodle/site:config` capability.
