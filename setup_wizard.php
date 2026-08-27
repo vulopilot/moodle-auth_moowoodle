@@ -34,6 +34,8 @@ use auth_moowoodle\settings\general_form;
 use auth_moowoodle\settings\webservice_form;
 use core\context\system as context_system;
 
+global $CFG, $OUTPUT, $PAGE, $USER;
+
 admin_externalpage_setup('auth_moowoodle_setup_wizard');
 
 $context = context_system::instance();
@@ -199,17 +201,24 @@ switch ($step) {
                 $data->newservicename ?? ''
             );
 
+            $content .= $OUTPUT->notification($result['message'], $result['success'] ? 'success' : 'error');
+
             if ($result['success']) {
                 setup_wizard::mark_step_complete($step);
-                redirect(
-                    $pageurl,
-                    get_string('webservice_created_success', 'auth_moowoodle'),
-                    null,
-                    \core\output\notification::NOTIFY_SUCCESS
-                );
-            }
 
-            $content .= $OUTPUT->notification($result['message'], 'error');
+                // Refresh the service/token lists and rebuild the form in place, instead of
+                // redirecting, so the newly created service and token show up immediately.
+                $viewserviceid = (int) $result['serviceid'];
+                $services = settings_handler::get_existing_services();
+                $tokens = settings_handler::get_tokens_for_service($viewserviceid);
+
+                $form = new webservice_form($pageurl, [
+                    'services' => $services,
+                    'users' => $users,
+                    'tokens' => $tokens,
+                    'existingservice' => true,
+                ]);
+            }
         }
 
         // Preserve the admin's in-progress "Select user" choice across a reload triggered by
