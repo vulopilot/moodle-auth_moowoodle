@@ -76,16 +76,69 @@ $copyjs = "document.addEventListener('click', function(event) {\n" .
     "});";
 $PAGE->requires->js_init_code($copyjs, true);
 
-// Reload the Web Service step's form when the service dropdown changes, so the Token
-// list can be refreshed for whichever service is now selected. A plain form submit
-// (not a specific button click) is used; the PHP side only treats a submission as a
-// real "create/update" action when the actual submit button's value is present.
-$reloadjs = "var serviceselect = document.getElementById('auth_moowoodle_serviceid');\n" .
-    "if (serviceselect && serviceselect.form) {\n" .
-    "    serviceselect.addEventListener('change', function() {\n" .
-    "        serviceselect.form.submit();\n" .
-    "    });\n" .
-    "}";
+// Refresh the Web Service step's Token list when the service or user dropdown changes,
+// via a small JSON fetch, instead of reloading the page. No page navigation means no
+// "leave this page?" prompt from Moodle's unsaved-changes warning, and the "Name for
+// the Web Service" field's own show/hide already happens client-side via hideIf().
+$ajaxurl = json_encode((new moodle_url('/auth/moowoodle/wizard_ajax.php'))->out(false));
+$tokenplaceholder = json_encode(get_string('webservice_selecttoken', 'auth_moowoodle'));
+$reloadjs = <<<JS
+(function() {
+    var serviceselect = document.getElementById('auth_moowoodle_serviceid');
+    var userselect = document.getElementById('id_userid');
+    var tokenselect = document.getElementById('auth_moowoodle_token');
+    var button = document.getElementById('id_updateservice');
+
+    if (!serviceselect || !tokenselect) {
+        return;
+    }
+
+    var refreshTokens = function() {
+        if (serviceselect.value === '') {
+            return;
+        }
+
+        var params = new URLSearchParams({
+            sesskey: M.cfg.sesskey,
+            serviceid: serviceselect.value,
+            userid: userselect ? userselect.value : 0
+        });
+
+        fetch({$ajaxurl} + '?' + params.toString(), {credentials: 'same-origin'})
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                tokenselect.innerHTML = '';
+
+                var placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = {$tokenplaceholder};
+                tokenselect.appendChild(placeholder);
+
+                Object.keys(data.tokens).forEach(function(token) {
+                    var option = document.createElement('option');
+                    option.value = token;
+                    option.textContent = data.tokens[token];
+                    option.selected = (token === data.selectedtoken);
+                    tokenselect.appendChild(option);
+                });
+
+                if (button) {
+                    button.value = data.buttonlabel;
+                }
+            })
+            .catch(function() {
+                // Leave the current token list as-is on a network error.
+            });
+    };
+
+    serviceselect.addEventListener('change', refreshTokens);
+    if (userselect) {
+        userselect.addEventListener('change', refreshTokens);
+    }
+})();
+JS;
 $PAGE->requires->js_init_code($reloadjs, true);
 
 // Simple GET+sesskey "continue" actions (steps with nothing to submit).
