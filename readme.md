@@ -11,3 +11,5 @@ Site administration > Plugins > Authentication > MooWoodle Connect > Setup wizar
 4. A summary screen with the Moodle site URL and access token to paste into the MooWoodle WordPress plugin settings.
 
 The same fields can also be edited directly from the plugin's settings page.
+
+Until the wizard is completed, a reminder linking to it appears on Site administration pages for anyone with the `moodle/site:config` capability.

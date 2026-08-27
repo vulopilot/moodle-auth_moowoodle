@@ -26,6 +26,38 @@
 defined('MOODLE_INTERNAL') || die;
 
 /**
+ * Reminder banner shown to admins on Site administration pages until the MooWoodle
+ * setup wizard has been completed, so a fresh install doesn't go unnoticed.
+ *
+ * @return string
+ */
+function auth_moowoodle_before_standard_top_of_body_html(): string {
+    global $PAGE, $OUTPUT;
+
+    if ($PAGE->pagelayout !== 'admin') {
+        return '';
+    }
+
+    if (!has_capability('moodle/site:config', \core\context\system::instance())) {
+        return '';
+    }
+
+    if ((string) get_config('auth_moowoodle', 'setup_progress') === 'summary') {
+        return '';
+    }
+
+    $wizardurl = new moodle_url('/auth/moowoodle/setup_wizard.php');
+
+    if ($PAGE->url->compare($wizardurl, URL_MATCH_BASE)) {
+        return '';
+    }
+
+    $link = html_writer::link($wizardurl, get_string('runsetupwizard', 'auth_moowoodle'), ['class' => 'alert-link']);
+
+    return $OUTPUT->notification(get_string('setupwizard_reminder', 'auth_moowoodle', $link), 'info');
+}
+
+/**
  * Encrypt data using AES-256-GCM.
  *
  * @param array  $data Data to encrypt.

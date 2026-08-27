@@ -37,6 +37,7 @@ $string['privacy:metadata'] = 'The MooWoodle-based wordpress-authentication plug
 // Settings page.
 $string['settings_intro'] = 'Connect this site to the MooWoodle WordPress plugin. Use the setup wizard for a guided, step-by-step configuration.';
 $string['runsetupwizard'] = 'Run setup wizard';
+$string['setupwizard_reminder'] = 'MooWoodle Connect is installed but not fully set up yet. {$a} to connect this site to your WordPress plugin.';
 $string['redosetup'] = 'Restart wizard';
 $string['gotosettings'] = 'Go to settings';
 $string['managetokens'] = 'Manage web service tokens';

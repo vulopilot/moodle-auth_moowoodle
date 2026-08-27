@@ -243,6 +243,7 @@ switch ($step) {
         // clicked. A plain dropdown-change reload (see the JS above) posts the form
         // without any submit button's name/value, so it never reaches this branch.
         $realsubmit = optional_param('updateservice', '', PARAM_RAW) !== '';
+        $justcreated = false;
 
         if ($realsubmit && ($data = $form->get_data())) {
             // Grant every known function automatically; the admin isn't asked to pick.
@@ -259,11 +260,21 @@ switch ($step) {
             if ($result['success']) {
                 setup_wizard::mark_step_complete($step);
 
+                $justcreated = true;
+                $createduserid = (int) $data->userid;
+
                 // Refresh the service/token lists and rebuild the form in place, instead of
                 // redirecting, so the newly created service and token show up immediately.
                 $viewserviceid = (int) $result['serviceid'];
                 $services = settings_handler::get_existing_services();
                 $tokens = settings_handler::get_tokens_for_service($viewserviceid);
+
+                // Discard the just-processed submission before rebuilding the form: once a
+                // moodleform detects it was submitted, it renders those posted values (e.g.
+                // serviceid "0" for "create new") instead of the set_data() defaults below,
+                // which would otherwise leave the dropdown stuck on "Create new web service"
+                // instead of switching to the service that was just created.
+                $_POST = [];
 
                 $form = new webservice_form($pageurl, [
                     'services' => $services,
@@ -276,11 +287,15 @@ switch ($step) {
 
         // Preserve the admin's in-progress "Select user" choice across a reload triggered by
         // changing the service dropdown, instead of resetting it back to the default each time.
-        $rawuserid = optional_param('userid', 0, PARAM_INT);
-        if ($rawuserid && array_key_exists($rawuserid, $users)) {
-            $selecteduserid = $rawuserid;
+        if ($justcreated) {
+            $selecteduserid = $createduserid;
         } else {
-            $selecteduserid = array_key_exists((int) $USER->id, $users) ? (int) $USER->id : (int) array_key_first($users);
+            $rawuserid = optional_param('userid', 0, PARAM_INT);
+            if ($rawuserid && array_key_exists($rawuserid, $users)) {
+                $selecteduserid = $rawuserid;
+            } else {
+                $selecteduserid = array_key_exists((int) $USER->id, $users) ? (int) $USER->id : (int) array_key_first($users);
+            }
         }
 
         $selectedtoken = '';
