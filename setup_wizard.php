@@ -175,28 +175,17 @@ switch ($step) {
         $rawserviceid = optional_param('serviceid', '', PARAM_RAW);
         $viewserviceid = $rawserviceid !== '' ? (int) $rawserviceid : (int) get_config('auth_moowoodle', 'webservice_id');
         $tokens = settings_handler::get_tokens_for_service($viewserviceid);
-        $availablefunctions = settings_handler::get_selectable_sync_functions();
 
         $form = new webservice_form($pageurl, [
             'services' => $services,
             'users' => $users,
             'tokens' => $tokens,
-            'functions' => $availablefunctions,
-            'mandatory' => settings_handler::SERVICE_FUNCTIONS,
+            'existingservice' => (bool) $viewserviceid,
         ]);
 
         if ($data = $form->get_data()) {
-            $selectedfunctions = [];
-
-            foreach ($availablefunctions as $function) {
-                $fieldname = 'func_' . $function;
-
-                if (!empty($data->$fieldname)) {
-                    $selectedfunctions[] = $function;
-                }
-            }
-
-            settings_handler::save_sync_functions($selectedfunctions);
+            // Grant every known function automatically; the admin isn't asked to pick.
+            settings_handler::save_sync_functions(settings_handler::get_selectable_sync_functions());
 
             $result = settings_handler::create_or_update_service(
                 (int) $data->serviceid,
@@ -236,30 +225,14 @@ switch ($step) {
             }
         }
 
-        $formdata = (object) [
+        $form->set_data((object) [
             'serviceid' => $viewserviceid,
             'newservicename' => optional_param('newservicename', '', PARAM_TEXT),
             'userid' => $selecteduserid,
             'langcode' => $CFG->lang,
             'siteurl' => $CFG->wwwroot,
             'token' => $selectedtoken,
-        ];
-
-        // Preserve function checkbox choices across a reload; otherwise fall back to
-        // whatever is currently granted (or the plugin's own required functions).
-        $enabledfunctions = data_submitted() ? [] : settings_handler::get_enabled_sync_functions();
-
-        foreach ($availablefunctions as $function) {
-            $fieldname = 'func_' . $function;
-
-            if (data_submitted()) {
-                $formdata->$fieldname = optional_param($fieldname, 0, PARAM_BOOL);
-            } else {
-                $formdata->$fieldname = in_array($function, $enabledfunctions, true);
-            }
-        }
-
-        $form->set_data($formdata);
+        ]);
 
         $content .= $OUTPUT->heading(get_string('step_webservice', 'auth_moowoodle'), 3);
         $content .= html_writer::tag('p', get_string('webservice_intro', 'auth_moowoodle'));

@@ -114,23 +114,12 @@ class webservice_form extends moodleform {
         );
         $mform->setType('token', PARAM_RAW);
 
-        $mform->addElement('header', 'functionsheader', get_string('step_synchronization', 'auth_moowoodle'));
-        $mform->addElement('static', 'functionsheader_desc', '', get_string('synchronization_intro', 'auth_moowoodle'));
+        $existingservice = !empty($this->_customdata['existingservice']);
+        $buttonlabel = $existingservice
+            ? get_string('webservice_recreate', 'auth_moowoodle')
+            : get_string('webservice_create', 'auth_moowoodle');
 
-        $functions = $this->_customdata['functions'] ?? [];
-        $mandatory = $this->_customdata['mandatory'] ?? [];
-
-        foreach ($functions as $function) {
-            $fieldname = 'func_' . $function;
-            $mform->addElement('advcheckbox', $fieldname, '', $function);
-
-            if (in_array($function, $mandatory, true)) {
-                $mform->setDefault($fieldname, 1);
-                $mform->freeze($fieldname);
-            }
-        }
-
-        $mform->addElement('submit', 'updateservice', get_string('webservice_update', 'auth_moowoodle'));
+        $mform->addElement('submit', 'updateservice', $buttonlabel);
     }
 
     /**
