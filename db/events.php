@@ -23,8 +23,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-global $observers;
-
 $observers = [
     [
         'eventname' => '\core\event\user_created',

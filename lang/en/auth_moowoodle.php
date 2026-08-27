@@ -118,3 +118,10 @@ $string['enabled'] = 'Enabled';
 $string['disabled'] = 'Disabled';
 $string['connectionok'] = 'Reachable';
 $string['checkmoredetails'] = 'Check the Wordpress Site step for details.';
+
+// SSO login endpoint errors.
+$string['ssoinvalidtoken'] = 'Invalid SSO token.';
+$string['ssoencryptfailed'] = 'Unable to encrypt the SSO request.';
+$string['ssounauthorized'] = 'Unauthorized access, contact your site administrator.';
+$string['ssotokenmismatch'] = 'Unauthorized access, request token mismatch.';
+$string['ssorequestfailed'] = 'The WordPress SSO request failed: {$a}';
