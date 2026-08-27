@@ -31,7 +31,6 @@ use auth_moowoodle\local\setup_wizard;
 use auth_moowoodle\local\settings_handler;
 use auth_moowoodle\settings\connection_form;
 use auth_moowoodle\settings\general_form;
-use auth_moowoodle\settings\synchronization_form;
 use auth_moowoodle\settings\webservice_form;
 use core\context\system as context_system;
 
@@ -74,6 +73,17 @@ $copyjs = "document.addEventListener('click', function(event) {\n" .
     "    }\n" .
     "});";
 $PAGE->requires->js_init_code($copyjs, true);
+
+// Reload the Web Service step's form when the service dropdown changes, so the Token
+// list can be refreshed for whichever service is now selected.
+$reloadjs = "var serviceselect = document.getElementById('auth_moowoodle_serviceid');\n" .
+    "var reloadbutton = document.getElementById('auth_moowoodle_reload');\n" .
+    "if (serviceselect && reloadbutton) {\n" .
+    "    serviceselect.addEventListener('change', function() {\n" .
+    "        reloadbutton.click();\n" .
+    "    });\n" .
+    "}";
+$PAGE->requires->js_init_code($reloadjs, true);
 
 // Simple GET+sesskey "continue" actions (steps with nothing to submit).
 if (data_submitted() && optional_param('continuestep', 0, PARAM_BOOL)) {
@@ -160,10 +170,39 @@ switch ($step) {
             $users = [$USER->id => fullname($USER)];
         }
 
-        $form = new webservice_form($pageurl, ['services' => $services, 'users' => $users]);
+        // The service currently selected in the dropdown (possibly not yet saved), so the
+        // Token list can be refreshed for it via the hidden reload button.
+        $rawserviceid = optional_param('serviceid', '', PARAM_RAW);
+        $viewserviceid = $rawserviceid !== '' ? (int) $rawserviceid : (int) get_config('auth_moowoodle', 'webservice_id');
+        $tokens = settings_handler::get_tokens_for_service($viewserviceid);
+        $availablefunctions = settings_handler::get_selectable_sync_functions();
+
+        $form = new webservice_form($pageurl, [
+            'services' => $services,
+            'users' => $users,
+            'tokens' => $tokens,
+            'functions' => $availablefunctions,
+            'mandatory' => settings_handler::SERVICE_FUNCTIONS,
+        ]);
 
         if ($data = $form->get_data()) {
-            $result = settings_handler::create_or_update_service((int) $data->serviceid, (int) $data->userid);
+            $selectedfunctions = [];
+
+            foreach ($availablefunctions as $function) {
+                $fieldname = 'func_' . $function;
+
+                if (!empty($data->$fieldname)) {
+                    $selectedfunctions[] = $function;
+                }
+            }
+
+            settings_handler::save_sync_functions($selectedfunctions);
+
+            $result = settings_handler::create_or_update_service(
+                (int) $data->serviceid,
+                (int) $data->userid,
+                $data->newservicename ?? ''
+            );
 
             if ($result['success']) {
                 setup_wizard::mark_step_complete($step);
@@ -178,22 +217,49 @@ switch ($step) {
             $content .= $OUTPUT->notification($result['message'], 'error');
         }
 
-        $currentserviceid = (int) get_config('auth_moowoodle', 'webservice_id');
-        $selecteduserid = array_key_exists((int) $USER->id, $users) ? (int) $USER->id : (int) array_key_first($users);
-        $token = '';
-
-        if ($currentserviceid && array_key_exists($currentserviceid, $services)) {
-            $existingtoken = settings_handler::get_existing_token($currentserviceid, $selecteduserid);
-            $token = $existingtoken ? $existingtoken->token : '';
+        // Preserve the admin's in-progress "Select user" choice across a reload triggered by
+        // changing the service dropdown, instead of resetting it back to the default each time.
+        $rawuserid = optional_param('userid', 0, PARAM_INT);
+        if ($rawuserid && array_key_exists($rawuserid, $users)) {
+            $selecteduserid = $rawuserid;
+        } else {
+            $selecteduserid = array_key_exists((int) $USER->id, $users) ? (int) $USER->id : (int) array_key_first($users);
         }
 
-        $form->set_data((object) [
-            'serviceid' => $currentserviceid,
+        $selectedtoken = '';
+
+        if ($viewserviceid) {
+            $existingtoken = settings_handler::get_existing_token($viewserviceid, $selecteduserid);
+
+            if ($existingtoken && array_key_exists($existingtoken->token, $tokens)) {
+                $selectedtoken = $existingtoken->token;
+            }
+        }
+
+        $formdata = (object) [
+            'serviceid' => $viewserviceid,
+            'newservicename' => optional_param('newservicename', '', PARAM_TEXT),
             'userid' => $selecteduserid,
             'langcode' => $CFG->lang,
             'siteurl' => $CFG->wwwroot,
-            'token' => $token,
-        ]);
+            'token' => $selectedtoken,
+        ];
+
+        // Preserve function checkbox choices across a reload; otherwise fall back to
+        // whatever is currently granted (or the plugin's own required functions).
+        $enabledfunctions = data_submitted() ? [] : settings_handler::get_enabled_sync_functions();
+
+        foreach ($availablefunctions as $function) {
+            $fieldname = 'func_' . $function;
+
+            if (data_submitted()) {
+                $formdata->$fieldname = optional_param($fieldname, 0, PARAM_BOOL);
+            } else {
+                $formdata->$fieldname = in_array($function, $enabledfunctions, true);
+            }
+        }
+
+        $form->set_data($formdata);
 
         $content .= $OUTPUT->heading(get_string('step_webservice', 'auth_moowoodle'), 3);
         $content .= html_writer::tag('p', get_string('webservice_intro', 'auth_moowoodle'));
@@ -201,47 +267,6 @@ switch ($step) {
 
         $nexturl = new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => setup_wizard::get_next_step($step)]);
         $content .= $OUTPUT->single_button($nexturl, get_string('next'), 'get');
-        break;
-
-    case 'synchronization':
-        $availablefunctions = settings_handler::get_selectable_sync_functions();
-        $form = new synchronization_form($pageurl, [
-            'functions' => $availablefunctions,
-            'mandatory' => settings_handler::SERVICE_FUNCTIONS,
-        ]);
-
-        if ($data = $form->get_data()) {
-            $selected = [];
-
-            foreach ($availablefunctions as $function) {
-                $fieldname = 'func_' . $function;
-
-                if (!empty($data->$fieldname)) {
-                    $selected[] = $function;
-                }
-            }
-
-            settings_handler::save_sync_functions($selected);
-            $content .= $OUTPUT->notification(get_string('settingssaved', 'auth_moowoodle'), 'success');
-
-            if (!empty($data->saveandcontinue)) {
-                setup_wizard::mark_step_complete($step);
-                redirect(new moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => setup_wizard::get_next_step($step)]));
-            }
-        } else {
-            $enabled = settings_handler::get_enabled_sync_functions();
-            $defaults = (object) [];
-
-            foreach ($availablefunctions as $function) {
-                $defaults->{'func_' . $function} = in_array($function, $enabled, true);
-            }
-
-            $form->set_data($defaults);
-        }
-
-        $content .= $OUTPUT->heading(get_string('step_synchronization', 'auth_moowoodle'), 3);
-        $content .= html_writer::tag('p', get_string('synchronization_intro', 'auth_moowoodle'));
-        $content .= $form->render();
         break;
 
     case 'summary':

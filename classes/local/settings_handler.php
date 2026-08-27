@@ -210,6 +210,38 @@ class settings_handler {
     }
 
     /**
+     * Tokens issued for the given service, keyed by the token string itself.
+     *
+     * @param int $serviceid
+     * @return string[]
+     */
+    public static function get_tokens_for_service(int $serviceid): array {
+        global $CFG, $DB;
+
+        if ($serviceid <= 0) {
+            return [];
+        }
+
+        require_once($CFG->libdir . '/externallib.php');
+
+        $tokens = $DB->get_records(
+            'external_tokens',
+            ['externalserviceid' => $serviceid, 'tokentype' => EXTERNAL_TOKEN_PERMANENT],
+            'id ASC'
+        );
+
+        $options = [];
+
+        foreach ($tokens as $token) {
+            $user = \core_user::get_user($token->userid);
+            $label = $user ? fullname($user) : ('#' . $token->userid);
+            $options[$token->token] = $label . ' (' . substr($token->token, 0, 8) . '…)';
+        }
+
+        return $options;
+    }
+
+    /**
      * List of custom (non built-in) external services, keyed by id.
      *
      * @return string[]
@@ -353,9 +385,11 @@ class settings_handler {
      * @param int $serviceid Existing external_services.id to reuse, or 0 to create a new service.
      * @param int $userid User the token will be issued for. Needs the capabilities
      *                     required by auth_moowoodle_get_users / auth_moowoodle_user_sync.
+     * @param string $servicename Name for a newly created service. Ignored when reusing one. Falls
+     *                            back to SERVICE_NAME if blank.
      * @return array [success => bool, message => string, token => string|null, serviceid => int|null]
      */
-    public static function create_or_update_service(int $serviceid, int $userid): array {
+    public static function create_or_update_service(int $serviceid, int $userid, string $servicename = ''): array {
         global $CFG, $DB;
 
         require_once($CFG->dirroot . '/webservice/lib.php');
@@ -375,7 +409,7 @@ class settings_handler {
                 $shortname = self::generate_service_shortname();
 
                 $servicedata = (object) [
-                    'name' => self::SERVICE_NAME,
+                    'name' => trim($servicename) !== '' ? trim($servicename) : self::SERVICE_NAME,
                     'shortname' => $shortname,
                     'enabled' => 1,
                     'restrictedusers' => 1,

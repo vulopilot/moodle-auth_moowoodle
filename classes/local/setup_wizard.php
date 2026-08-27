@@ -40,7 +40,6 @@ class setup_wizard {
             'requirements' => get_string('step_requirements', 'auth_moowoodle'),
             'webservice' => get_string('step_webservice', 'auth_moowoodle'),
             'connection' => get_string('step_connection', 'auth_moowoodle'),
-            'synchronization' => get_string('step_synchronization', 'auth_moowoodle'),
             'summary' => get_string('step_summary', 'auth_moowoodle'),
         ];
     }

@@ -45,10 +45,34 @@ class webservice_form extends moodleform {
 
         $services = $this->_customdata['services'] ?? [];
         $users = $this->_customdata['users'] ?? [];
+        $tokens = $this->_customdata['tokens'] ?? [];
 
-        $serviceoptions = [0 => get_string('webservice_createnew', 'auth_moowoodle')] + $services;
-        $mform->addElement('select', 'serviceid', get_string('webservice_selectservice', 'auth_moowoodle'), $serviceoptions);
-        $mform->setType('serviceid', PARAM_INT);
+        $serviceoptions = [
+            '' => get_string('webservice_selectplaceholder', 'auth_moowoodle'),
+            0 => get_string('webservice_createnew', 'auth_moowoodle'),
+        ] + $services;
+        $mform->addElement(
+            'select',
+            'serviceid',
+            get_string('webservice_selectservice', 'auth_moowoodle'),
+            $serviceoptions,
+            ['id' => 'auth_moowoodle_serviceid']
+        );
+        $mform->setType('serviceid', PARAM_RAW);
+
+        $mform->addElement('text', 'newservicename', get_string('webservice_newservicename', 'auth_moowoodle'), ['size' => 40]);
+        $mform->setType('newservicename', PARAM_TEXT);
+        $mform->hideIf('newservicename', 'serviceid', 'neq', 0);
+
+        // A hidden, no-submit button that only reloads the form so the Token list can
+        // be refreshed for whichever service is currently selected.
+        $mform->registerNoSubmitButton('reload');
+        $mform->addElement(
+            'submit',
+            'reload',
+            get_string('reload', 'auth_moowoodle'),
+            ['id' => 'auth_moowoodle_reload', 'class' => 'd-none']
+        );
 
         $mform->addElement('select', 'userid', get_string('webservice_selectuser', 'auth_moowoodle'), $users);
         $mform->setType('userid', PARAM_INT);
@@ -77,9 +101,10 @@ class webservice_form extends moodleform {
         );
         $mform->setType('siteurl', PARAM_URL);
 
+        $tokenoptions = ['' => get_string('webservice_selecttoken', 'auth_moowoodle')] + $tokens;
         $mform->addGroup(
             [
-                $mform->createElement('text', 'token', '', ['size' => 40, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_token']),
+                $mform->createElement('select', 'token', '', $tokenoptions, ['id' => 'auth_moowoodle_token']),
                 $mform->createElement('html', $this->copy_button('auth_moowoodle_token')),
             ],
             'tokengroup',
@@ -89,7 +114,42 @@ class webservice_form extends moodleform {
         );
         $mform->setType('token', PARAM_RAW);
 
+        $mform->addElement('header', 'functionsheader', get_string('step_synchronization', 'auth_moowoodle'));
+        $mform->addElement('static', 'functionsheader_desc', '', get_string('synchronization_intro', 'auth_moowoodle'));
+
+        $functions = $this->_customdata['functions'] ?? [];
+        $mandatory = $this->_customdata['mandatory'] ?? [];
+
+        foreach ($functions as $function) {
+            $fieldname = 'func_' . $function;
+            $mform->addElement('advcheckbox', $fieldname, '', $function);
+
+            if (in_array($function, $mandatory, true)) {
+                $mform->setDefault($fieldname, 1);
+                $mform->freeze($fieldname);
+            }
+        }
+
         $mform->addElement('submit', 'updateservice', get_string('webservice_update', 'auth_moowoodle'));
+    }
+
+    /**
+     * Require a name when creating a new service.
+     *
+     * @param array $data
+     * @param array $files
+     * @return array
+     */
+    public function validation($data, $files) {
+        $errors = parent::validation($data, $files);
+
+        if ((string) $data['serviceid'] === '') {
+            $errors['serviceid'] = get_string('required');
+        } else if ((string) $data['serviceid'] === '0' && trim($data['newservicename']) === '') {
+            $errors['newservicename'] = get_string('required');
+        }
+
+        return $errors;
     }
 
     /**

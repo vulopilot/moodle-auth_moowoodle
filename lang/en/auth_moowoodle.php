@@ -87,14 +87,18 @@ $string['webservice_heading'] = 'Web service';
 $string['webservice_status_none'] = 'No web service has been created yet. Run the setup wizard to create one.';
 $string['webservice_status_exists'] = 'Web service "{$a}" is set up.';
 $string['webservice_selectservice'] = 'Select web service';
-$string['webservice_createnew'] = 'Create new: MooWoodle Connect';
+$string['webservice_selectplaceholder'] = 'Select web service';
+$string['webservice_createnew'] = '- Create new web service -';
+$string['webservice_newservicename'] = 'Name for the Web Service';
 $string['webservice_selectuser'] = 'Select user';
+$string['webservice_selecttoken'] = 'Select token';
 $string['webservice_langcode'] = 'Language code';
 $string['webservice_siteurl'] = 'Site URL';
 $string['webservice_update'] = 'Update web service';
+$string['reload'] = 'Reload';
 $string['webservice_nouser'] = 'No eligible user found. The selected user needs the "moodle/webservice:createtoken" capability.';
 
-// Setup wizard: Synchronization step.
+// Setup wizard: Web Service step, additional function grants.
 $string['synchronization_intro'] = 'Choose which additional web service functions the MooWoodle WordPress plugin is allowed to call. The functions required by this plugin are always enabled. Only enable functions the WordPress site actually needs — each one grants real access to Moodle data. Checking a box grants that function immediately; unchecking it here does not revoke access already granted — remove a function from Site administration > Server > Web services > External services if needed.';
 
 // Setup wizard: Summary step.
