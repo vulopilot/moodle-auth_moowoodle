@@ -99,34 +99,63 @@ class setup_wizard {
     }
 
     /**
-     * Render the step progress indicator using Moodle's standard tab UI.
+     * Render the step progress indicator, styled like Moodle's secondary navigation
+     * tabs (the "moremenu" component used for e.g. the admin section tabs), rather
+     * than the older tabtree() component.
      *
      * @param string $currentstep
      * @return string
      */
     public static function render_progress(string $currentstep): string {
-        global $OUTPUT;
-
         $steps = self::get_steps();
         $stepkeys = array_keys($steps);
 
         $furthest = get_config('auth_moowoodle', 'setup_progress');
         $furthestindex = $furthest ? array_search($furthest, $stepkeys, true) : -1;
 
-        $tabs = [];
-        $inactive = [];
+        $items = '';
 
         foreach ($stepkeys as $index => $key) {
-            $url = new \moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => $key]);
-            $tabs[] = new \tabobject($key, $url, $steps[$key]);
-
             // A step can only be jumped to once the wizard has reached it at least once.
-            if ($index > $furthestindex + 1) {
-                $inactive[] = $key;
+            $islocked = $index > $furthestindex + 1;
+            $isactive = $key === $currentstep;
+
+            $linkclass = 'nav-link' . ($isactive ? ' active' : '') . ($islocked ? ' disabled' : '');
+
+            if ($islocked) {
+                $link = \html_writer::tag('span', $steps[$key], [
+                    'class' => $linkclass,
+                    'aria-disabled' => 'true',
+                ]);
+            } else {
+                $url = new \moodle_url('/auth/moowoodle/setup_wizard.php', ['step' => $key]);
+                $linkattrs = ['class' => $linkclass, 'role' => 'menuitem'];
+
+                if ($isactive) {
+                    $linkattrs['aria-current'] = 'true';
+                }
+
+                $link = \html_writer::link($url, $steps[$key], $linkattrs);
             }
+
+            $items .= \html_writer::tag('li', $link, ['class' => 'nav-item', 'role' => 'none']);
         }
 
-        return $OUTPUT->tabtree($tabs, $currentstep, $inactive);
+        $list = \html_writer::tag(
+            'ul',
+            $items,
+            [
+                // Matches the class list Moodle's own secondary navigation tabs render
+                // with once their JS overflow-observer has initialised ("observed" is
+                // included statically here since that JS module isn't wired up for this
+                // static list of 4 steps - without it, the .moremenu CSS rule that fades
+                // the tabs in on "observed" would otherwise leave them at opacity: 0).
+                'class' => 'nav more-nav nav-tabs moremenu navigation observed',
+                'role' => 'menubar',
+            ]
+        );
+
+        return \html_writer::tag('nav', $list);
     }
 
     /**

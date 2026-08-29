@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026082702;
+$plugin->version = 2026082703;
 $plugin->requires = 2025041400;
 $plugin->component = 'auth_moowoodle';
 $plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.1.0 (Build: 2026082702)';
+$plugin->release = '1.1.0 (Build: 2026082703)';
