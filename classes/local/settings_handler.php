@@ -233,7 +233,7 @@ class settings_handler {
         $options = [];
 
         foreach ($tokens as $token) {
-            $options[$token->token] = substr($token->token, 0, 8) . '…';
+            $options[$token->token] = $token->token;
         }
 
         return $options;

@@ -99,7 +99,7 @@ class webservice_form extends moodleform {
                     'token',
                     '',
                     $tokenoptions,
-                    ['id' => 'auth_moowoodle_token', 'style' => 'min-width: 20em;']
+                    ['id' => 'auth_moowoodle_token', 'style' => 'min-width: 28em;']
                 ),
                 $mform->createElement('html', $this->copy_button('auth_moowoodle_token')),
             ],
