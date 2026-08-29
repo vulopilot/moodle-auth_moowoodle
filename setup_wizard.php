@@ -223,7 +223,7 @@ switch ($step) {
         $users = settings_handler::get_selectable_users();
 
         if (empty($users)) {
-            $users = [$USER->id => fullname($USER)];
+            $users = [$USER->id => $USER->email];
         }
 
         // The service currently selected in the dropdown (possibly not yet saved), so the

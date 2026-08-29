@@ -278,7 +278,7 @@ class settings_handler {
 
         $options = [];
         foreach ($users as $user) {
-            $options[$user->id] = fullname($user) . ' (' . $user->email . ')';
+            $options[$user->id] = $user->email;
         }
 
         return $options;
@@ -410,7 +410,7 @@ class settings_handler {
                     'name' => trim($servicename) !== '' ? trim($servicename) : self::SERVICE_NAME,
                     'shortname' => $shortname,
                     'enabled' => 1,
-                    'restrictedusers' => 1,
+                    'restrictedusers' => 0,
                     'downloadfiles' => 0,
                     'uploadfiles' => 0,
                     'timecreated' => time(),
