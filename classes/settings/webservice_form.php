@@ -94,7 +94,13 @@ class webservice_form extends moodleform {
         $tokenoptions = ['' => get_string('webservice_selecttoken', 'auth_moowoodle')] + $tokens;
         $mform->addGroup(
             [
-                $mform->createElement('select', 'token', '', $tokenoptions, ['id' => 'auth_moowoodle_token']),
+                $mform->createElement(
+                    'select',
+                    'token',
+                    '',
+                    $tokenoptions,
+                    ['id' => 'auth_moowoodle_token', 'style' => 'min-width: 20em;']
+                ),
                 $mform->createElement('html', $this->copy_button('auth_moowoodle_token')),
             ],
             'tokengroup',

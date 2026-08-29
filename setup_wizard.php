@@ -388,8 +388,8 @@ switch ($step) {
 }
 
 echo $OUTPUT->header();
-echo $OUTPUT->box_start('generalbox auth-moowoodle-setup-wizard');
 echo setup_wizard::render_progress($step);
+echo $OUTPUT->box_start('generalbox auth-moowoodle-setup-wizard');
 echo $content;
 echo $OUTPUT->box_end();
 echo $OUTPUT->footer();
