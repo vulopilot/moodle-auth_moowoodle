@@ -27,8 +27,19 @@ It lets a WordPress site running MooWoodle:
 * Pull batches of Moodle user data (`auth_moowoodle_get_users`) and push user create/update
   requests into Moodle (`auth_moowoodle_user_sync`) over Moodle's web services API.
 
-Please note: the MooWoodle plugin is mandatory on the WordPress side for the integration to
-work, and must be installed and configured there separately.
+1. <a href="https://wordpress.org/plugins/moowoodle/">MooWoodle - WordPress Add On</a>
+2. <a href="https://github.com/dualcube/moodle-auth_moowoodle">MooWoodle Connect - Moodle Add On</a>
+
+1. <a href="https://dualcube.com/product/moowoodle-pro/">MooWoodle Pro</a>
+
+So to enhance its functionality and achieve a fully automated WooCommerce solution for selling
+your Moodle courses, you may consider choosing MooWoodle Pro to be installed on your
+WordPress site.
+
+Please note: the MooWoodle WordPress plugin (https://downloads.wordpress.org/plugin/moowoodle.zip)
+is mandatory for the setup and has to be installed on your WordPress site for WordPress -
+Moodle integration. Refer to this documentation for setup:
+https://dualcube.com/docs/moowoodle-set-up-guide/
 
 [(Back to top)](#table-of-contents)
 
