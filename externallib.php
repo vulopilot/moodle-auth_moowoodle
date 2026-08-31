@@ -22,10 +22,11 @@
  * @copyright  2023 DualCube Team(https://dualcube.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-defined('MOODLE_INTERNAL') || die();
 
-// Support for Moodle 4.2, where external_api is not yet autoloaded.
-require_once("{$CFG->libdir}/externallib.php");
+use core_external\external_api;
+use core_external\external_function_parameters;
+use core_external\external_single_structure;
+use core_external\external_value;
 
 /**
  * External library
@@ -35,17 +36,17 @@ require_once("{$CFG->libdir}/externallib.php");
  * @copyright  2023 DualCube Team(https://dualcube.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class auth_moowoodle_external extends \external_api {
+class auth_moowoodle_external extends external_api {
     /**
      * Returns description of method parameters.
      *
-     * @return \external_function_parameters
+     * @return external_function_parameters
      */
-    public static function auth_moowoodle_get_users_parameters(): \external_function_parameters {
-        return new \external_function_parameters([
-            'endid' => new \external_value(PARAM_RAW, 'The last id to send the next batch of user data'),
-            'limit' => new \external_value(PARAM_RAW, 'The limit for the batch of user data'),
-            'roles' => new \external_value(PARAM_RAW, 'The role ids, a comma separated string of role ids'),
+    public static function auth_moowoodle_get_users_parameters(): external_function_parameters {
+        return new external_function_parameters([
+            'endid' => new external_value(PARAM_RAW, 'The last id to send the next batch of user data'),
+            'limit' => new external_value(PARAM_RAW, 'The limit for the batch of user data'),
+            'roles' => new external_value(PARAM_RAW, 'The role ids, a comma separated string of role ids'),
         ]);
     }
 
@@ -98,24 +99,24 @@ class auth_moowoodle_external extends \external_api {
     /**
      * Returns description of method result value.
      *
-     * @return \external_single_structure
+     * @return external_single_structure
      */
-    public static function auth_moowoodle_get_users_returns(): \external_single_structure {
-        return new \external_single_structure([
-            'status' => new \external_value(PARAM_RAW, 'status: success if success'),
-            'data' => new \external_value(PARAM_RAW, 'users: all user data'),
+    public static function auth_moowoodle_get_users_returns(): external_single_structure {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_RAW, 'status: success if success'),
+            'data' => new external_value(PARAM_RAW, 'users: all user data'),
         ]);
     }
 
     /**
      * Returns description of method parameters.
      *
-     * @return \external_function_parameters
+     * @return external_function_parameters
      */
-    public static function auth_moowoodle_user_sync_parameters(): \external_function_parameters {
-        return new \external_function_parameters([
-            'userdata' => new \external_value(PARAM_RAW, 'WordPress user data'),
-            'setting' => new \external_value(PARAM_RAW, 'Sync setting information from WordPress'),
+    public static function auth_moowoodle_user_sync_parameters(): external_function_parameters {
+        return new external_function_parameters([
+            'userdata' => new external_value(PARAM_RAW, 'WordPress user data'),
+            'setting' => new external_value(PARAM_RAW, 'Sync setting information from WordPress'),
         ]);
     }
 
@@ -215,12 +216,12 @@ class auth_moowoodle_external extends \external_api {
     /**
      * Returns description of method result value.
      *
-     * @return \external_single_structure
+     * @return external_single_structure
      */
-    public static function auth_moowoodle_user_sync_returns(): \external_single_structure {
-        return new \external_single_structure([
-            'status' => new \external_value(PARAM_RAW, 'status: success if success'),
-            'data' => new \external_value(PARAM_RAW, 'Moodle user id'),
+    public static function auth_moowoodle_user_sync_returns(): external_single_structure {
+        return new external_single_structure([
+            'status' => new external_value(PARAM_RAW, 'status: success if success'),
+            'data' => new external_value(PARAM_RAW, 'Moodle user id'),
         ]);
     }
 }
