@@ -10,11 +10,11 @@ MooWoodle Connect for Moodle
 - [Free Software](#free-software)
 - [Support](#support)
 - [Installation](#installation)
-- [Setup Wizard](#setup-wizard)
 - [Uninstallation](#uninstallation)
 - [Files Information](#files-information)
 - [History](#history)
 - [Author](#author)
+- [Provided by](#provided-by)
 
 # Description
 
@@ -51,7 +51,7 @@ work, and must be installed and configured there separately.
 
 # Plugin Version
 
-v1.1.0 (Build: 2026083101) - Latest
+v1.1.0 (Build: 2026083102) - Latest
 
 [(Back to top)](#table-of-contents)
 
@@ -97,14 +97,11 @@ https://github.com/vulopilot/moodle-auth_moowoodle.
   installation, using the FTP application of your choice.
 * Visit Site administration > Notifications to complete the install.
 
-[(Back to top)](#table-of-contents)
-
-# Setup Wizard
-
+= Moodle Configuration =
 Right after installation finishes, the next page an admin loads redirects straight into the
-wizard at Site administration > Plugins > Authentication > MooWoodle Connect > Setup wizard.
-Until the wizard is completed, a reminder also appears on Site administration pages for
-anyone with the `moodle/site:config` capability.
+setup wizard at Site administration > Plugins > Authentication > MooWoodle Connect > Setup
+wizard. Until the wizard is completed, a reminder also appears on Site administration pages
+for anyone with the `moodle/site:config` capability.
 
 The wizard walks through:
 
@@ -145,11 +142,17 @@ contains the observer for real-time user sync.
 
 # History
 
-See the commit history at https://github.com/vulopilot/moodle-auth_moowoodle/commits.
+See the commit history at https://github.com/dualcube/moodle-auth_moowoodle/commits.
 
 [(Back to top)](#table-of-contents)
 
 # Author
+
+DualCube
+
+[(Back to top)](#table-of-contents)
+
+# Provided by
 
 DualCube (https://dualcube.com)
 
