@@ -54,6 +54,7 @@ $string['settingssaved'] = 'Settings saved.';
 $string['recommendedyes'] = 'Recommended: yes';
 $string['recommendedno'] = 'Recommended: no';
 $string['copy'] = 'Copy';
+$string['copied'] = 'Copied';
 
 // Setup wizard: General step.
 $string['requirements_intro'] = 'Before connecting to WordPress, make sure your Moodle site meets the following requirements.';

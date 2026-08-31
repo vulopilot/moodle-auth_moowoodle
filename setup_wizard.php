@@ -57,6 +57,7 @@ $PAGE->set_title(get_string('setupwizard', 'auth_moowoodle'));
 $PAGE->set_heading(get_string('setupwizard', 'auth_moowoodle'));
 
 // Small "Copy" button behaviour for the read-only site URL / token fields.
+$copiedlabel = json_encode(get_string('copied', 'auth_moowoodle'));
 $copyjs = "document.addEventListener('click', function(event) {\n" .
     "    var button = event.target.closest('.auth-moowoodle-copy');\n" .
     "    if (!button) {\n" .
@@ -73,6 +74,14 @@ $copyjs = "document.addEventListener('click', function(event) {\n" .
     "        target.select();\n" .
     "        document.execCommand('copy');\n" .
     "    }\n" .
+    "    if (!button.dataset.originalLabel) {\n" .
+    "        button.dataset.originalLabel = button.textContent;\n" .
+    "    }\n" .
+    "    clearTimeout(button.moowoodleCopyTimeout);\n" .
+    "    button.textContent = {$copiedlabel};\n" .
+    "    button.moowoodleCopyTimeout = setTimeout(function() {\n" .
+    "        button.textContent = button.dataset.originalLabel;\n" .
+    "    }, 2000);\n" .
     "});";
 $PAGE->requires->js_init_code($copyjs, true);
 
