@@ -35,7 +35,6 @@ require_once($CFG->libdir . '/formslib.php');
  * General server requirements form, used by the setup wizard.
  */
 class general_form extends moodleform {
-
     /**
      * Form definition.
      */

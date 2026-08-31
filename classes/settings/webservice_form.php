@@ -36,7 +36,6 @@ require_once($CFG->libdir . '/formslib.php');
  * Web service / token form, used by the setup wizard.
  */
 class webservice_form extends moodleform {
-
     /**
      * Form definition.
      */
@@ -69,7 +68,12 @@ class webservice_form extends moodleform {
 
         $mform->addGroup(
             [
-                $mform->createElement('text', 'langcode', '', ['size' => 20, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_langcode']),
+                $mform->createElement(
+                    'text',
+                    'langcode',
+                    '',
+                    ['size' => 20, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_langcode']
+                ),
                 $mform->createElement('html', $this->copy_button('auth_moowoodle_langcode')),
             ],
             'langcodegroup',
@@ -81,7 +85,12 @@ class webservice_form extends moodleform {
 
         $mform->addGroup(
             [
-                $mform->createElement('text', 'siteurl', '', ['size' => 40, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_siteurl']),
+                $mform->createElement(
+                    'text',
+                    'siteurl',
+                    '',
+                    ['size' => 40, 'readonly' => 'readonly', 'id' => 'auth_moowoodle_siteurl']
+                ),
                 $mform->createElement('html', $this->copy_button('auth_moowoodle_siteurl')),
             ],
             'siteurlgroup',

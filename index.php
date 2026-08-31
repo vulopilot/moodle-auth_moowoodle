@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * WordPress single sign-on entry point: verifies a passkey issued by the
  * MooWoodle WordPress plugin and logs the corresponding Moodle user in.
@@ -23,6 +24,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// This is the SSO entry point itself: it establishes the login, so there is
+// nothing to require_login() against yet.
+// phpcs:ignore moodle.Files.RequireLogin.Missing
 require_once(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/filelib.php');
 require_once(__DIR__ . '/lib.php');
@@ -49,7 +53,6 @@ if ($passkey) {
     $userexist = $DB->record_exists('user', ['id' => $requestdata['user_id']]);
 
     if ($timedif >= 0 && $timedif < get_config('auth_moowoodle', 'timelimit') * 60 && $userexist) {
-
         $user = get_complete_user_data('id', $requestdata['user_id']);
 
         // Get wordpress request url.
@@ -112,8 +115,10 @@ if ($passkey) {
             complete_user_login($user);
         }
 
-        if (!empty($requestdata['redirect_url'])
-                && parse_url($requestdata['redirect_url'], PHP_URL_HOST) === parse_url($CFG->wwwroot, PHP_URL_HOST)) {
+        if (
+            !empty($requestdata['redirect_url'])
+                && parse_url($requestdata['redirect_url'], PHP_URL_HOST) === parse_url($CFG->wwwroot, PHP_URL_HOST)
+        ) {
             $SESSION->wantsurl = $requestdata['redirect_url'];
         }
     }

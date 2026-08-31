@@ -167,7 +167,6 @@ if (data_submitted() && optional_param('restartwizard', 0, PARAM_BOOL)) {
 $content = '';
 
 switch ($step) {
-
     case 'requirements':
         $form = new general_form($pageurl);
 
@@ -345,9 +344,9 @@ switch ($step) {
         $content .= html_writer::tag('p', get_string('summary_intro', 'auth_moowoodle'));
 
         $statuscell = static function (bool $ok) use ($OUTPUT): string {
-            return $ok
-                ? $OUTPUT->pix_icon('i/valid', get_string('enabled', 'auth_moowoodle')) . ' ' . get_string('enabled', 'auth_moowoodle')
-                : $OUTPUT->pix_icon('i/invalid', get_string('disabled', 'auth_moowoodle')) . ' ' . get_string('disabled', 'auth_moowoodle');
+            $label = get_string($ok ? 'enabled' : 'disabled', 'auth_moowoodle');
+
+            return $OUTPUT->pix_icon($ok ? 'i/valid' : 'i/invalid', $label) . ' ' . $label;
         };
 
         $content .= $OUTPUT->heading(get_string('summary_general_heading', 'auth_moowoodle'), 4);
@@ -373,13 +372,18 @@ switch ($step) {
             : $OUTPUT->pix_icon('i/invalid', '') . ' ' . s($connectiontest['message']) . ' '
                 . html_writer::link($connectionstepurl, get_string('checkmoredetails', 'auth_moowoodle'));
 
+        $notset = get_string('summary_notset', 'auth_moowoodle');
+        $displayvalue = static function (string $value) use ($notset): string {
+            return $value !== '' ? s($value) : $notset;
+        };
+
         $connectiontable = new html_table();
         $connectiontable->attributes['class'] = 'table table-sm auth-moowoodle-summary-table';
         $connectiontable->data = [
             [get_string('summary_moodleurl', 'auth_moowoodle'), s($summary['moodleurl'])],
-            [get_string('summary_webservicename', 'auth_moowoodle'), $summary['webservicename'] !== '' ? s($summary['webservicename']) : get_string('summary_notset', 'auth_moowoodle')],
-            [get_string('webservice_token_label', 'auth_moowoodle'), $summary['token'] !== '' ? s($summary['token']) : get_string('summary_notset', 'auth_moowoodle')],
-            [get_string('summary_wordpressurl', 'auth_moowoodle'), $summary['wordpressurl'] !== '' ? s($summary['wordpressurl']) : get_string('summary_notset', 'auth_moowoodle')],
+            [get_string('summary_webservicename', 'auth_moowoodle'), $displayvalue($summary['webservicename'])],
+            [get_string('webservice_token_label', 'auth_moowoodle'), $displayvalue($summary['token'])],
+            [get_string('summary_wordpressurl', 'auth_moowoodle'), $displayvalue($summary['wordpressurl'])],
             [get_string('summary_connectionstatus', 'auth_moowoodle'), $connectionstatus],
             [get_string('summary_langcode', 'auth_moowoodle'), s($summary['langcode'])],
         ];

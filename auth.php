@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  *
  * @package    auth_moowoodle
@@ -33,7 +34,6 @@ require_once($CFG->libdir . '/authlib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class auth_plugin_moowoodle extends auth_plugin_base {
-
     /**
      * constructor
      */

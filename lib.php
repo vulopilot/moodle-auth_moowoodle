@@ -23,8 +23,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
-
 /**
  * Right after a fresh install, send the next admin who loads a page straight to the
  * setup wizard. This runs on every single request (it's a core bootstrap callback),
@@ -37,9 +35,11 @@ function auth_moowoodle_after_config(): void {
         return;
     }
 
-    if (CLI_SCRIPT || AJAX_SCRIPT || WS_SERVER || during_initial_install()
+    if (
+        CLI_SCRIPT || AJAX_SCRIPT || WS_SERVER || during_initial_install()
             || (defined('PHPUNIT_TEST') && PHPUNIT_TEST)
-            || (defined('NO_MOODLE_COOKIES') && NO_MOODLE_COOKIES)) {
+            || (defined('NO_MOODLE_COOKIES') && NO_MOODLE_COOKIES)
+    ) {
         return;
     }
 

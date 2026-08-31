@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * External library
  *
@@ -35,7 +36,6 @@ require_once("{$CFG->libdir}/externallib.php");
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class auth_moowoodle_external extends \external_api {
-
     /**
      * Returns description of method parameters.
      *

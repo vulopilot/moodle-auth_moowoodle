@@ -29,7 +29,6 @@ namespace auth_moowoodle\local;
  * Setup wizard step registry and progress rendering.
  */
 class setup_wizard {
-
     /**
      * Ordered list of wizard steps.
      *

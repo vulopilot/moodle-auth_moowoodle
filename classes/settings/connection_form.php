@@ -35,7 +35,6 @@ require_once($CFG->libdir . '/formslib.php');
  * WordPress connection settings form, used by the setup wizard.
  */
 class connection_form extends moodleform {
-
     /**
      * Form definition.
      */

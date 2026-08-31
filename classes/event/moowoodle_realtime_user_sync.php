@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  * Sync WordPress with Moodle when a user changes in Moodle.
  *
@@ -33,7 +34,6 @@ namespace auth_moowoodle\event;
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class moowoodle_realtime_user_sync {
-
     /**
      * Push the affected user's data to the WordPress site whenever a relevant
      * Moodle user event fires.

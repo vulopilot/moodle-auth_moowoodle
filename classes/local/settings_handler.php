@@ -32,7 +32,6 @@ use Exception;
  * Helper functions used by the settings page and the setup wizard.
  */
 class settings_handler {
-
     /** @var string Name given to the web service created for the WordPress connection. */
     const SERVICE_NAME = 'MooWoodle Connect';
 
