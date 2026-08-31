@@ -22,7 +22,10 @@ jobs:
       fail-fast: false
       matrix:
         php: ['8.4']
-        moodle-branch: ['MOODLE_500_STABLE']
+        # MOODLE_500_STABLE is the plugin's declared minimum (see $plugin->requires
+        # in version.php); main tracks the unreleased 5.3dev branch, the top of
+        # $plugin->supported, so both ends of the declared range get exercised.
+        moodle-branch: ['MOODLE_500_STABLE', 'main']
         database: [mariadb]
 
     steps:
@@ -132,7 +135,7 @@ jobs:
         if: ${{ failure() && steps.behat.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
         with:
-          name: Behat Faildump (${{ matrix.php }}, ${{ matrix.database }})
+          name: Behat Faildump (${{ matrix.moodle-branch }}, ${{ matrix.php }}, ${{ matrix.database }})
           path: ${{ github.workspace }}/moodledata/behat_dump
           retention-days: 7
           if-no-files-found: ignore
