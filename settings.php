@@ -36,8 +36,6 @@ $ADMIN->add(
 );
 
 if ($ADMIN->fulltree) {
-    require_once(__DIR__ . '/classes/local/settings_handler.php');
-
     $settings->add(
         new admin_setting_heading(
             'auth_moowoodle/wizardheading',

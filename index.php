@@ -28,7 +28,6 @@
 // nothing to require_login() against yet.
 // phpcs:ignore moodle.Files.RequireLogin.Missing
 require_once(__DIR__ . '/../../config.php');
-require_once($CFG->libdir . '/filelib.php');
 require_once(__DIR__ . '/lib.php');
 
 $SESSION->wantsurl = $CFG->wwwroot . '/';
@@ -58,7 +57,7 @@ if ($passkey) {
         // Get wordpress request url.
         $requesturl = get_config('auth_moowoodle', 'wpsiteurl') . '/?rest_route=/moowoodle/v1/sso';
 
-        $curl = new curl();
+        $client = new \core\http_client(['timeout' => 100, 'http_errors' => false]);
 
         $requesttoken = bin2hex(random_bytes(32));
 
@@ -83,21 +82,20 @@ if ($passkey) {
         }
 
         // Send request to wordpress server.
-        $response = $curl->post(
-            $requesturl,
-            [
-                'payload' => $encryptedrequest,
-            ],
-            [
-                'RETURNTRANSFER' => 1,
-                'TIMEOUT' => 100,
-            ]
-        );
+        $curlerror = '';
 
-        $response = json_decode($response, true);
+        try {
+            $responsebody = (string) $client->post($requesturl, ['form_params' => ['payload' => $encryptedrequest]])
+                ->getBody();
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+            $responsebody = '';
+            $curlerror = $e->getMessage();
+        }
+
+        $response = json_decode($responsebody, true);
 
         if (!$response) {
-            throw new moodle_exception('ssorequestfailed', 'auth_moowoodle', '', $curl->error);
+            throw new moodle_exception('ssorequestfailed', 'auth_moowoodle', '', $curlerror);
         }
 
         if ($response['status'] === 'unauthorized') {

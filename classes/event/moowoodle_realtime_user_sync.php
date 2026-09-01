@@ -42,10 +42,6 @@ class moowoodle_realtime_user_sync {
      * @return void
      */
     public static function moowoodle_user_sync_observer(\core\event\base $event): void {
-        global $CFG;
-
-        require_once($CFG->libdir . '/filelib.php');
-
         $userdata = get_complete_user_data('id', $event->get_data()['relateduserid']);
 
         $userdataarray = [
@@ -67,10 +63,14 @@ class moowoodle_realtime_user_sync {
 
         $requesturl = get_config('auth_moowoodle', 'wpsiteurl') . '/?rest_route=/moowoodle/v1/user-sync';
 
-        $curl = new \curl();
-        $curl->post($requesturl, $userdataarray, [
-            'RETURNTRANSFER' => true,
-            'TIMEOUT' => 100,
-        ]);
+        $client = new \core\http_client(['timeout' => 100, 'http_errors' => false]);
+
+        try {
+            $client->post($requesturl, ['form_params' => $userdataarray]);
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+            // Best-effort sync; a network failure here must not disrupt the
+            // Moodle event that triggered it.
+            debugging($e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }

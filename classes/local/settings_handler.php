@@ -127,9 +127,7 @@ class settings_handler {
      * @return \stdClass|false
      */
     public static function get_existing_token(int $serviceid, int $userid) {
-        global $CFG, $DB;
-
-        require_once($CFG->libdir . '/externallib.php');
+        global $DB;
 
         return $DB->get_record(
             'external_tokens',
@@ -146,9 +144,7 @@ class settings_handler {
      * @return \stdClass|false
      */
     public static function get_any_token_for_service(int $serviceid) {
-        global $CFG, $DB;
-
-        require_once($CFG->libdir . '/externallib.php');
+        global $DB;
 
         return $DB->get_record(
             'external_tokens',
@@ -215,13 +211,11 @@ class settings_handler {
      * @return string[]
      */
     public static function get_tokens_for_service(int $serviceid): array {
-        global $CFG, $DB;
+        global $DB;
 
         if ($serviceid <= 0) {
             return [];
         }
-
-        require_once($CFG->libdir . '/externallib.php');
 
         $tokens = $DB->get_records(
             'external_tokens',
@@ -497,8 +491,6 @@ class settings_handler {
      * @return array [success => bool, message => string]
      */
     public static function test_connection(string $wpsiteurl): array {
-        global $CFG;
-
         $wpsiteurl = rtrim(trim($wpsiteurl), '/');
 
         if ($wpsiteurl === '' || !filter_var($wpsiteurl, FILTER_VALIDATE_URL)) {
@@ -508,20 +500,20 @@ class settings_handler {
             ];
         }
 
-        require_once($CFG->libdir . '/filelib.php');
-
-        $curl = new \curl();
-        $curl->setopt([
-            'CURLOPT_TIMEOUT' => 15,
-            'CURLOPT_CONNECTTIMEOUT' => 10,
-            'CURLOPT_FOLLOWLOCATION' => 1,
-            'CURLOPT_NOBODY' => 1,
+        $client = new \core\http_client([
+            'timeout' => 15,
+            'connect_timeout' => 10,
+            'allow_redirects' => true,
+            'http_errors' => false,
         ]);
-        $curl->head($wpsiteurl);
-        $info = $curl->get_info();
-        $errno = $curl->get_errno();
 
-        if ($errno || empty($info['http_code']) || $info['http_code'] >= 500) {
+        try {
+            $httpcode = $client->head($wpsiteurl)->getStatusCode();
+        } catch (\GuzzleHttp\Exception\GuzzleException) {
+            $httpcode = 0;
+        }
+
+        if ($httpcode === 0 || $httpcode >= 500) {
             return [
                 'success' => false,
                 'message' => get_string('testconnection_unreachable', 'auth_moowoodle', $wpsiteurl),

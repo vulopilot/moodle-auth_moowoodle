@@ -92,14 +92,17 @@ jobs:
       # Checkout
       # ---------------------------------------------------------
 
-      # The repository is named "moodle-auth_<slug>" by convention; the plugin
-      # directory itself (and everything moodle-plugin-ci expects) is just
-      # "<slug>", so derive it here instead of hardcoding it - this keeps the
-      # workflow correct across forks/renames without any manual edits.
+      # DualCube Moodle plugin repos are named "moodle-<component>" by convention
+      # (moodle-auth_moowoodle, moodle-local_x, moodle-mod_x, ...); stripping just
+      # the "moodle-" prefix leaves the real frankenstyle component name
+      # (auth_moowoodle, local_x, mod_x, ...) as the checkout folder, which works
+      # for every plugin type without hardcoding one here - moodle-plugin-ci
+      # doesn't care what the folder is named, it reads the real component from
+      # the plugin's own version.php.
       - name: Determine plugin slug
         run: |
           REPO_NAME="${{ github.event.repository.name }}"
-          echo "PLUGIN_SLUG=${REPO_NAME#moodle-auth_}" >> "$GITHUB_ENV"
+          echo "PLUGIN_SLUG=${REPO_NAME#moodle-}" >> "$GITHUB_ENV"
 
       - name: Checkout plugin
         uses: actions/checkout@v4
@@ -149,9 +152,11 @@ jobs:
       - name: Configure Node
         run: echo "NVM_DIR=$HOME/.nvm" >> $GITHUB_ENV
 
+      # Note: tests/ and phpunit.xml must NOT be removed here - the PHPUnit and
+      # Behat steps below run against this same checkout, and need them.
       - name: Clean extra files from plugin
         run: |
-          rm -rf "$PLUGIN_SLUG/.git" "$PLUGIN_SLUG/.github" "$PLUGIN_SLUG/node_modules" "$PLUGIN_SLUG/tests" "$PLUGIN_SLUG/phpunit.xml" "$PLUGIN_SLUG/vendor"
+          rm -rf "$PLUGIN_SLUG/.git" "$PLUGIN_SLUG/.github" "$PLUGIN_SLUG/node_modules" "$PLUGIN_SLUG/vendor"
           rm -f "$PLUGIN_SLUG"/composer.* "$PLUGIN_SLUG"/package*.json "$PLUGIN_SLUG/webpack.config.js" "$PLUGIN_SLUG/.zipignore"
 
       # ---------------------------------------------------------
@@ -232,10 +237,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: moodle-plugin-ci grunt --max-lint-warnings 0
 
-      - name: PHP Code Beautifier and Fixer
-        if: ${{ !cancelled() }}
-        run: moodle-plugin-ci phpcbf "$PLUGIN_SLUG"
-
       # ---------------------------------------------------------
       # Plugin validation
       # ---------------------------------------------------------
@@ -292,15 +293,11 @@ jobs:
       - name: Determine plugin slug
         run: |
           REPO_NAME="${{ github.event.repository.name }}"
-          echo "PLUGIN_SLUG=${REPO_NAME#moodle-auth_}" >> "$GITHUB_ENV"
+          echo "PLUGIN_SLUG=${REPO_NAME#moodle-}" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@v4
         with:
           path: ${{ env.PLUGIN_SLUG }}
-
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 18
 
       - name: Configure Git
         run: |
@@ -314,9 +311,14 @@ jobs:
         run: |
           zip -r "release/$PLUGIN_SLUG.zip" "$PLUGIN_SLUG" -x@"$PLUGIN_SLUG/exclude.lst"
 
-      - name: Get version from package.json
+      # version.php's $plugin->version is what Moodle itself treats as this
+      # plugin's authoritative version - it's bumped on every real release,
+      # unlike package.json's version field which isn't kept in sync with it.
+      - name: Get version from version.php
         id: version
-        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        run: |
+          VERSION=$(sed -n "s/^\$plugin->version[[:space:]]*=[[:space:]]*\([0-9]*\);/\1/p" version.php)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
         working-directory: ${{ env.PLUGIN_SLUG }}
 
       - name: Determine release date
