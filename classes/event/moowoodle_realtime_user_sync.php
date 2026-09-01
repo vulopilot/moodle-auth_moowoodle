@@ -13,8 +13,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * Sync wordpress and moodle
+ * Sync WordPress with Moodle when a user changes in Moodle.
  *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
@@ -24,59 +25,52 @@
 
 namespace auth_moowoodle\event;
 
-defined( 'MOODLE_INTERNAL' ) || die();
-
-require_once( __DIR__ . '/../../externallib.php' );
-require_once ( $CFG->libdir . '/filelib.php' );
-
 /**
- * Sinc wodrpres with moodle if smothing changed in moodle
+ * Sync WordPress with Moodle when a user changes in Moodle.
+ *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
  * @copyright  2023 DualCube Team(https://dualcube.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class moowoodle_realtime_user_sync {
-
     /**
-     * moodle user sync for event in moodle
+     * Push the affected user's data to the WordPress site whenever a relevant
+     * Moodle user event fires.
+     *
      * @param \core\event\base $event
+     * @return void
      */
-    public static function moowoodle_user_sync_observer( \core\event\base $event ) {
-        $userdata = get_complete_user_data( 'id', $event->get_data()[ 'relateduserid' ] );
-                
-        $userdataarray = [];
+    public static function moowoodle_user_sync_observer(\core\event\base $event): void {
+        $userdata = get_complete_user_data('id', $event->get_data()['relateduserid']);
 
-        // Get the user data
-        $userdataarray[ 'email' ]    = $userdata->email;
-        $userdataarray[ 'username' ] = $userdata->username;
-        $userdataarray[ 'password' ] = $userdata->password;
-        
-        // Get the user first name
-        if ( $userdata->firstname != null ) {
-            $userdataarray[ 'firstname' ] = $userdata->firstname;
-        }
-
-        // Get the user last name
-        if ( $userdata->lastname != null ) {
-            $userdataarray[ 'lastname' ] = $userdata->lastname;
-        }
-
-        $userdataarray[ 'passkey' ] = get_config( 'auth_moowoodle', 'encryptkey' );
-
-        $requesturl = get_config( 'auth_moowoodle', 'wpsiteurl' ) . '/?rest_route=/moowoodle/v1/user-sync';
-
-        $options = [
-            'RETURNTRANSFER' => true,
-            'TIMEOUT'        => 100,
+        $userdataarray = [
+            'email' => $userdata->email,
+            'username' => $userdata->username,
+            'password' => $userdata->password,
         ];
 
-        $curl = new \curl();
-        
-        if ( $curl === false ) {
-            die( 'Failed to initialize cURL' );
+        // Only send names that are actually set.
+        if ($userdata->firstname != null) {
+            $userdataarray['firstname'] = $userdata->firstname;
         }
 
-        $response = $curl->post( $requesturl, $userdataarray, $options );
+        if ($userdata->lastname != null) {
+            $userdataarray['lastname'] = $userdata->lastname;
+        }
+
+        $userdataarray['passkey'] = get_config('auth_moowoodle', 'encryptkey');
+
+        $requesturl = get_config('auth_moowoodle', 'wpsiteurl') . '/?rest_route=/moowoodle/v1/user-sync';
+
+        $client = new \core\http_client(['timeout' => 100, 'http_errors' => false]);
+
+        try {
+            $client->post($requesturl, ['form_params' => $userdataarray]);
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
+            // Best-effort sync; a network failure here must not disrupt the
+            // Moodle event that triggered it.
+            debugging($e->getMessage(), DEBUG_DEVELOPER);
+        }
     }
 }

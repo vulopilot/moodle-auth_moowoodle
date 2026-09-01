@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
  *
  * @package    auth_moowoodle
@@ -33,7 +34,6 @@ require_once($CFG->libdir . '/authlib.php');
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class auth_plugin_moowoodle extends auth_plugin_base {
-
     /**
      * constructor
      */
@@ -43,10 +43,11 @@ class auth_plugin_moowoodle extends auth_plugin_base {
     }
 
     /**
-     * check if there is the record finding by ysername and mnet_localhost_id
+     * Authenticate a Moodle-local user by username and password.
      *
      * @param string $username
-     * @param null $password
+     * @param string|null $password
+     * @return bool
      */
     public function user_login($username, $password = null) {
         global $CFG, $DB;
@@ -65,35 +66,45 @@ class auth_plugin_moowoodle extends auth_plugin_base {
     }
 
     /**
-     * if the user can reset password
+     * Whether users of this authentication method can reset their password.
+     *
+     * @return bool
      */
     public function can_reset_password() {
         return false;
     }
 
     /**
-     * return if the user can change password
+     * Whether users of this authentication method can change their password.
+     *
+     * @return bool
      */
     public function can_change_password() {
         return false;
     }
 
     /**
-     * return if user can change password url
+     * URL for changing the user's password, if any.
+     *
+     * @return void
      */
     public function change_password_url() {
         return;
     }
 
     /**
-     * return if its internal
+     * Whether this is an internal authentication method.
+     *
+     * @return bool
      */
     public function is_internal() {
         return false;
     }
 
     /**
-     * function to prevent local password
+     * Whether Moodle should prevent local password changes for this method.
+     *
+     * @return bool
      */
     public function prevent_local_passwords() {
         return false;

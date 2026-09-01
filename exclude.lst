@@ -1,0 +1,12 @@
+moowoodle/.git/*
+moowoodle/.github/*
+moowoodle/composer.json
+moowoodle/composer.lock
+moowoodle/package.json
+moowoodle/package-lock.json
+moowoodle/node_modules/*
+moowoodle/vendor/*
+moowoodle/phpunit.xml
+moowoodle/tests/*
+moowoodle/release/*
+moowoodle/exclude.lst

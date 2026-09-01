@@ -13,8 +13,9 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
 /**
- * settings panel
+ * Settings and setup wizard registration.
  *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
@@ -23,49 +24,82 @@
  */
 defined('MOODLE_INTERNAL') || die;
 
+// Setup wizard entry, listed alongside the other authentication plugin pages.
+$ADMIN->add(
+    'authsettings',
+    new admin_externalpage(
+        'auth_moowoodle_setup_wizard',
+        get_string('setupwizard', 'auth_moowoodle'),
+        "$CFG->wwwroot/auth/moowoodle/setup_wizard.php",
+        'moodle/site:config'
+    )
+);
+
 if ($ADMIN->fulltree) {
     $settings->add(
-        new admin_setting_configtext(
-            'auth_moowoodle/encryptkey',
-            get_string(
-                'key', 'auth_moowoodle'
-            ),
-            get_string(
-                'moowoodle_plugin_message',
-                'auth_moowoodle'
-            ),
+        new admin_setting_heading(
+            'auth_moowoodle/wizardheading',
             '',
-            PARAM_RAW
+            html_writer::tag(
+                'div',
+                get_string('settings_intro', 'auth_moowoodle') . ' ' .
+                html_writer::link(
+                    new moodle_url('/auth/moowoodle/setup_wizard.php'),
+                    get_string('runsetupwizard', 'auth_moowoodle'),
+                    ['class' => 'btn btn-primary ml-2']
+                ),
+                ['class' => 'auth-moowoodle-settings-intro']
+            )
         )
     );
+
     $settings->add(
         new admin_setting_configtext(
             'auth_moowoodle/wpsiteurl',
-            get_string(
-                'wpsiteurl',
-                'auth_moowoodle'
-            ),
-            get_string(
-                'wpsiteurl_message',
-                'auth_moowoodle'
-            ),
+            get_string('wpsiteurl', 'auth_moowoodle'),
+            get_string('wpsiteurl_message', 'auth_moowoodle'),
             '',
-            PARAM_RAW
+            PARAM_URL
         )
     );
+
+    $settings->add(
+        new admin_setting_configpasswordunmask(
+            'auth_moowoodle/encryptkey',
+            get_string('key', 'auth_moowoodle'),
+            get_string('moowoodle_plugin_message', 'auth_moowoodle'),
+            ''
+        )
+    );
+
     $settings->add(
         new admin_setting_configtext(
             'auth_moowoodle/timelimit',
-            get_string(
-                'timelimit',
-                'auth_moowoodle'
-            ),
-            get_string(
-                'timelimit_message',
-                'auth_moowoodle'
-            ),
-            '1',
+            get_string('timelimit', 'auth_moowoodle'),
+            get_string('timelimit_message', 'auth_moowoodle'),
+            60,
             PARAM_INT
+        )
+    );
+
+    // Web service / token status, kept in sync with what the setup wizard creates.
+    $service = \auth_moowoodle\local\settings_handler::get_existing_service();
+
+    if ($service) {
+        $statusmessage = get_string('webservice_status_exists', 'auth_moowoodle', s($service->name));
+    } else {
+        $statusmessage = get_string('webservice_status_none', 'auth_moowoodle');
+    }
+
+    $manageurl = new moodle_url('/admin/settings.php', ['section' => 'webservicetokens']);
+    $statushtml = html_writer::tag('p', $statusmessage) .
+        html_writer::link($manageurl, get_string('managetokens', 'auth_moowoodle'));
+
+    $settings->add(
+        new admin_setting_heading(
+            'auth_moowoodle/webservicestatus',
+            get_string('webservice_heading', 'auth_moowoodle'),
+            $statushtml
         )
     );
 }
