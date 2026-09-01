@@ -48,8 +48,8 @@ class connection_form extends moodleform {
 
         $mform->addElement('text', 'encryptkey', get_string('key', 'auth_moowoodle'), ['size' => 50]);
         $mform->setType('encryptkey', PARAM_RAW_TRIMMED);
-        $mform->addRule('encryptkey', get_string('required'), 'required', null, 'client');
         $mform->addHelpButton('encryptkey', 'key', 'auth_moowoodle');
+        $mform->addElement('static', 'encryptkey_message', '', get_string('key_message', 'auth_moowoodle'));
 
         $mform->addElement('text', 'timelimit', get_string('timelimit', 'auth_moowoodle'), ['size' => 10]);
         $mform->setType('timelimit', PARAM_INT);
