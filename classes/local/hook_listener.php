@@ -25,7 +25,6 @@
 
 namespace auth_moowoodle\local;
 
-use core\hook\after_config;
 use core\hook\output\before_standard_top_of_body_html_generation;
 
 /**
@@ -37,10 +36,10 @@ class hook_listener {
      * setup wizard. This runs on every single request, so it must return immediately
      * once the one-time flag set by db/install.php is gone.
      *
-     * @param after_config $hook Unused: this hook has no payload to act on, the redirect
-     *                           it triggers is issued directly instead.
+     * Registered in db/hooks.php against \core\hook\after_config, which carries no
+     * payload to act on, so the callback takes no parameter.
      */
-    public static function after_config(after_config $hook): void {
+    public static function after_config(): void {
         global $USER;
 
         if (self::should_skip_setup_wizard_prompt()) {

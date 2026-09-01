@@ -77,6 +77,8 @@ class provider implements
      * @return contextlist The contextlist containing the list of contexts used in this plugin.
      */
     public static function get_contexts_for_userid(int $userid): contextlist {
+        unset($userid);
+
         return new contextlist();
     }
 
@@ -86,6 +88,7 @@ class provider implements
      * @param userlist $userlist The userlist containing the list of users who have data in this context/plugin combination.
      */
     public static function get_users_in_context(userlist $userlist): void {
+        unset($userlist);
     }
 
     /**
@@ -94,6 +97,7 @@ class provider implements
      * @param approved_contextlist $contextlist The approved contexts to export information for.
      */
     public static function export_user_data(approved_contextlist $contextlist): void {
+        unset($contextlist);
     }
 
     /**
@@ -102,6 +106,7 @@ class provider implements
      * @param \context $context A user context.
      */
     public static function delete_data_for_all_users_in_context(\context $context): void {
+        unset($context);
     }
 
     /**
@@ -110,6 +115,7 @@ class provider implements
      * @param approved_userlist $userlist The approved context and user information to delete information for.
      */
     public static function delete_data_for_users(approved_userlist $userlist): void {
+        unset($userlist);
     }
 
     /**
@@ -118,5 +124,6 @@ class provider implements
      * @param approved_contextlist $contextlist The approved contexts and user information to delete information for.
      */
     public static function delete_data_for_user(approved_contextlist $contextlist): void {
+        unset($contextlist);
     }
 }
