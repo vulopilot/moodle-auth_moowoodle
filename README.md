@@ -88,7 +88,7 @@ good place to look.
 # Support
 
 For issues or questions about this plugin, please use the GitHub issue tracker at
-https://github.com/vulopilot/moodle-auth_moowoodle.
+https://github.com/dualcube/moodle-auth_moowoodle.
 
 [(Back to top)](#table-of-contents)
 
