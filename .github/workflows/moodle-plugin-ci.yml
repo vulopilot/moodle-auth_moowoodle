@@ -370,7 +370,7 @@ jobs:
           echo "date=${DAY}${SUFFIX} $(date -u +'%B %Y')" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ steps.version.outputs.version }}
           files: release/${{ env.PLUGIN_SLUG }}.zip
