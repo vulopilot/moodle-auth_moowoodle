@@ -384,7 +384,6 @@ class settings_handler {
         global $CFG, $DB;
 
         require_once($CFG->dirroot . '/webservice/lib.php');
-        require_once($CFG->libdir . '/externallib.php');
 
         $webservicemanager = new \webservice();
 
@@ -440,7 +439,12 @@ class settings_handler {
             if ($existingtoken) {
                 $token = $existingtoken->token;
             } else {
-                $token = \external_generate_token(EXTERNAL_TOKEN_PERMANENT, $serviceid, $userid, context_system::instance());
+                $token = \core_external\util::generate_token(
+                    EXTERNAL_TOKEN_PERMANENT,
+                    \core_external\util::get_service_by_id($serviceid),
+                    $userid,
+                    context_system::instance()
+                );
             }
 
             return [
