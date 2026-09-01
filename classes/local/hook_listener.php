@@ -39,7 +39,6 @@ class hook_listener {
      *
      * @param after_config $hook Unused: this hook has no payload to act on, the redirect
      *                           it triggers is issued directly instead.
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public static function after_config(after_config $hook): void {
         global $USER;

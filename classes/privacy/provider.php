@@ -44,9 +44,6 @@ use core_privacy\local\request\userlist;
  * @author     DualCube <admin@dualcube.com>
  * @copyright  2023 DualCube Team(https://dualcube.com)
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- * @SuppressWarnings(PHPMD.UnusedFormalParameter) Every method below implements a
- *   core_privacy interface; this plugin stores nothing locally, so the parameters
- *   describing what to export/delete are unused by design, not an oversight.
  */
 class provider implements
     \core_privacy\local\metadata\provider,
