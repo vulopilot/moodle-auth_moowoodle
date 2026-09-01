@@ -28,7 +28,6 @@
 // nothing to require_login() against yet.
 // phpcs:ignore moodle.Files.RequireLogin.Missing
 require_once(__DIR__ . '/../../config.php');
-require_once(__DIR__ . '/lib.php');
 
 $SESSION->wantsurl = $CFG->wwwroot . '/';
 
@@ -37,7 +36,7 @@ $passkey = optional_param('passkey', '', PARAM_RAW);
 if ($passkey) {
     $ssokey = get_config('auth_moowoodle', 'encryptkey');
 
-    $requestdata = moowoodle_decrypt_data($passkey, $ssokey);
+    $requestdata = \auth_moowoodle\local\crypto::decrypt($passkey, $ssokey);
 
     if (false === $requestdata) {
         throw new moodle_exception('ssoinvalidtoken', 'auth_moowoodle');
@@ -75,7 +74,7 @@ if ($passkey) {
             'request_token' => $requesttoken,
         ];
 
-        $encryptedrequest = moowoodle_encrypt_data($reqdata, $ssokey);
+        $encryptedrequest = \auth_moowoodle\local\crypto::encrypt($reqdata, $ssokey);
 
         if (false === $encryptedrequest) {
             throw new moodle_exception('ssoencryptfailed', 'auth_moowoodle');

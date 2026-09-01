@@ -25,7 +25,6 @@
 
 require(__DIR__ . '/../../config.php');
 require_once($CFG->libdir . '/adminlib.php');
-require_once(__DIR__ . '/lib.php');
 
 use auth_moowoodle\local\setup_wizard;
 use auth_moowoodle\local\settings_handler;

@@ -27,7 +27,7 @@
  * Runs once, right after this plugin is first installed.
  */
 function xmldb_auth_moowoodle_install() {
-    // Consumed by auth_moowoodle_after_config(), which sends the next admin who loads
+    // Consumed by hook_listener::after_config(), which sends the next admin who loads
     // a page to the setup wizard, then clears this flag so it only happens once.
     set_config('promptsetupwizard', 1, 'auth_moowoodle');
 }

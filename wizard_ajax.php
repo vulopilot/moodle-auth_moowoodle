@@ -26,7 +26,6 @@
  */
 
 require(__DIR__ . '/../../config.php');
-require_once(__DIR__ . '/lib.php');
 
 use auth_moowoodle\local\settings_handler;
 use core\context\system as context_system;

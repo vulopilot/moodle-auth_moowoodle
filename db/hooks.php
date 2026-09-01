@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * version defination for the plugin
+ * Hook listener callbacks.
  *
  * @package    auth_moowoodle
  * @author     DualCube <admin@dualcube.com>
@@ -25,10 +25,13 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version = 2026090102;
-$plugin->requires = 2025041400;
-// Tested against Moodle 5.0 through 5.3, including the 5.3dev branch (branches 500-530).
-$plugin->supported = [500, 530];
-$plugin->component = 'auth_moowoodle';
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = '1.1.0 (Build: 2026090102)';
+$callbacks = [
+    [
+        'hook' => \core\hook\after_config::class,
+        'callback' => [\auth_moowoodle\local\hook_listener::class, 'after_config'],
+    ],
+    [
+        'hook' => \core\hook\output\before_standard_top_of_body_html_generation::class,
+        'callback' => [\auth_moowoodle\local\hook_listener::class, 'before_standard_top_of_body_html'],
+    ],
+];

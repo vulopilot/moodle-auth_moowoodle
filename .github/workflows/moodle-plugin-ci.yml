@@ -283,10 +283,15 @@ jobs:
         if: ${{ cancelled() }}
         run: exit 1
 
+  # Releases are explicit and manual: run "Run workflow" on this workflow (choosing
+  # the branch/commit to release from) once CI is green. This intentionally replaces
+  # a commit-message sniff ("Merge pull request"), which silently skips releasing on
+  # squash merges, rebase merges, manually pushed commits, or non-default merge
+  # settings - all of which produce a passing `test` job but no matching commit text.
   create_tag_and_release:
     runs-on: ubuntu-24.04
     needs: test
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, 'Merge pull request')
+    if: github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
     steps:
