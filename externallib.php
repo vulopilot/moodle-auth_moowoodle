@@ -129,8 +129,6 @@ class auth_moowoodle_external extends external_api {
      * @return array
      */
     public static function auth_moowoodle_user_sync($userdata, $setting) {
-        global $DB, $CFG;
-
         // Validate input parameters.
         $params = self::validate_parameters(
             self::auth_moowoodle_user_sync_parameters(),
@@ -140,9 +138,6 @@ class auth_moowoodle_external extends external_api {
             ]
         );
 
-        $userdata = $params['userdata'];
-        $setting = $params['setting'];
-
         // Validate context.
         $context = \core\context\system::instance();
         self::validate_context($context);
@@ -151,8 +146,8 @@ class auth_moowoodle_external extends external_api {
         require_capability('auth/moowoodle:syncusers', $context);
 
         // Decode JSON.
-        $wpuserdata = json_decode($userdata, true);
-        $syncsettings = json_decode($setting, true);
+        $wpuserdata = json_decode($params['userdata'], true);
+        $syncsettings = json_decode($params['setting'], true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             throw new \invalid_parameter_exception('Invalid JSON payload.');
@@ -165,6 +160,24 @@ class auth_moowoodle_external extends external_api {
             ];
         }
 
+        $response = self::sync_moodle_user($wpuserdata, $syncsettings);
+
+        return [
+            'status' => 'success',
+            'data' => json_encode($response),
+        ];
+    }
+
+    /**
+     * Create or update the Moodle account matching the given WordPress user data.
+     *
+     * @param array $wpuserdata WordPress user data, decoded from JSON.
+     * @param array $syncsettings Fields WordPress is allowed to overwrite on an existing user.
+     * @return array ['created' => bool, 'id' => int]
+     */
+    private static function sync_moodle_user(array $wpuserdata, array $syncsettings): array {
+        global $DB, $CFG;
+
         require_once($CFG->dirroot . '/user/lib.php');
 
         $moodleuserdata = $DB->get_record('user', ['email' => $wpuserdata['email'], 'deleted' => 0]);
@@ -174,25 +187,14 @@ class auth_moowoodle_external extends external_api {
             $moodleuserdata = new \stdClass();
         }
 
+        $isnewuser = !$moodleuserdata->id;
+
         $moodleuserdata->email = clean_param($wpuserdata['email'], PARAM_EMAIL);
 
-        if (in_array('username', $syncsettings) || !$moodleuserdata->id) {
-            $moodleuserdata->username = clean_param($wpuserdata['username'], PARAM_USERNAME);
-        }
-
-        if ((in_array('password', $syncsettings) && $wpuserdata['password'] != null) || !$moodleuserdata->id) {
-            if (strpos($wpuserdata['password'], '$6$rounds=') === 0) {
-                $moodleuserdata->password = $wpuserdata['password'];
-            }
-        }
-
-        if ((in_array('firstname', $syncsettings) && $wpuserdata['firstname'] != null) || !$moodleuserdata->id) {
-            $moodleuserdata->firstname = clean_param($wpuserdata['firstname'] ?? '', PARAM_NOTAGS);
-        }
-
-        if ((in_array('lastname', $syncsettings) && $wpuserdata['lastname'] != null) || !$moodleuserdata->id) {
-            $moodleuserdata->lastname = clean_param($wpuserdata['lastname'] ?? '', PARAM_NOTAGS);
-        }
+        self::apply_username($moodleuserdata, $wpuserdata, $syncsettings, $isnewuser);
+        self::apply_password($moodleuserdata, $wpuserdata, $syncsettings, $isnewuser);
+        self::apply_namefield($moodleuserdata, $wpuserdata, $syncsettings, $isnewuser, 'firstname');
+        self::apply_namefield($moodleuserdata, $wpuserdata, $syncsettings, $isnewuser, 'lastname');
 
         $moodleuserdata->confirmed = true;
         $moodleuserdata->mnethostid = $CFG->mnet_localhost_id;
@@ -207,10 +209,71 @@ class auth_moowoodle_external extends external_api {
 
         $response['id'] = $userid;
 
-        return [
-            'status' => 'success',
-            'data' => json_encode($response),
-        ];
+        return $response;
+    }
+
+    /**
+     * Set the username from WordPress data, if allowed or the account is new.
+     *
+     * @param \stdClass $moodleuserdata
+     * @param array $wpuserdata
+     * @param array $syncsettings
+     * @param bool $isnewuser
+     */
+    private static function apply_username(
+        \stdClass $moodleuserdata,
+        array $wpuserdata,
+        array $syncsettings,
+        bool $isnewuser
+    ): void {
+        if (in_array('username', $syncsettings) || $isnewuser) {
+            $moodleuserdata->username = clean_param($wpuserdata['username'], PARAM_USERNAME);
+        }
+    }
+
+    /**
+     * Set the password hash from WordPress data, if allowed or the account is new.
+     *
+     * Only accepted when it looks like a WordPress-style bcrypt/SHA-2 hash
+     * ('$6$rounds=' prefix); anything else is silently left untouched.
+     *
+     * @param \stdClass $moodleuserdata
+     * @param array $wpuserdata
+     * @param array $syncsettings
+     * @param bool $isnewuser
+     */
+    private static function apply_password(
+        \stdClass $moodleuserdata,
+        array $wpuserdata,
+        array $syncsettings,
+        bool $isnewuser
+    ): void {
+        if ((in_array('password', $syncsettings) && $wpuserdata['password'] != null) || $isnewuser) {
+            if (strpos($wpuserdata['password'], '$6$rounds=') === 0) {
+                $moodleuserdata->password = $wpuserdata['password'];
+            }
+        }
+    }
+
+    /**
+     * Set a name field (firstname/lastname) from WordPress data, if allowed or the account is new.
+     *
+     * @param \stdClass $moodleuserdata
+     * @param array $wpuserdata
+     * @param array $syncsettings
+     * @param bool $isnewuser
+     * @param string $field Either 'firstname' or 'lastname'.
+     */
+    private static function apply_namefield(
+        \stdClass $moodleuserdata,
+        array $wpuserdata,
+        array $syncsettings,
+        bool $isnewuser,
+        string $field
+    ): void {
+        if ((in_array($field, $syncsettings) && $wpuserdata[$field] != null) || $isnewuser) {
+            $moodleuserdata->$field = clean_param($wpuserdata[$field] ?? '', PARAM_NOTAGS);
+        }
     }
 
     /**
